@@ -2,18 +2,18 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-// Agregamos ClipboardCheck para el icono de Fiscalía
-import { LayoutDashboard, AlertCircle, Wallet, Users, ClipboardCheck } from 'lucide-react'
+// Agregamos Landmark (Banco) para Tesorería
+import { LayoutDashboard, AlertCircle, Wallet, Users, ClipboardCheck, Landmark } from 'lucide-react'
 
-// Definimos que este componente espera recibir un booleano
 interface SidebarNavProps {
   esFiscal: boolean;
+  esTesorero: boolean; // <--- Nuevo Prop
 }
 
-export function SidebarNav({ esFiscal }: SidebarNavProps) {
+export function SidebarNav({ esFiscal, esTesorero }: SidebarNavProps) {
   const pathname = usePathname()
 
-  // Lista base de rutas para todos los mortales
+  // Lista base
   const routes = [
     {
       name: 'Inicio',
@@ -37,12 +37,21 @@ export function SidebarNav({ esFiscal }: SidebarNavProps) {
     }
   ]
 
-  // SI ES FISCAL, LE INYECTAMOS LA RUTA EXTRA 💉
+  // ⚖️ INYECTAR DESPACHO FISCAL
   if (esFiscal) {
     routes.push({
       name: 'Despacho Fiscal',
       path: '/fiscalia',
       icon: ClipboardCheck
+    })
+  }
+
+  // 💰 INYECTAR TESORERÍA (Nuevo)
+  if (esTesorero) {
+    routes.push({
+      name: 'Tesorería',
+      path: '/tesoreria',
+      icon: Landmark 
     })
   }
 

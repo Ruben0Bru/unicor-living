@@ -15,16 +15,21 @@ export default async function DashboardLayout({
 
   if (!user) redirect('/login')
 
-  // CAMBIO: Ahora traemos 'roles(nombre)' para saber quién es
+  // Traemos 'roles(nombre)' para saber quién es
   const { data: perfil } = await supabase
     .from('perfiles')
     .select('*, roles(nombre)') 
     .eq('id', user.id)
     .single()
 
-  // Lógica de autoridad
+  // --- LÓGICA DE PERMISOS GRANULAR ---
   const nombreRol = perfil?.roles?.nombre?.toLowerCase() || ''
-  const esAutoridad = nombreRol.includes('fiscal') || nombreRol.includes('admin') || nombreRol.includes('representante')
+  
+  // ¿Quién puede ver la Fiscalía?
+  const puedeVerFiscalia = nombreRol.includes('fiscal') || nombreRol.includes('admin') || nombreRol.includes('representante')
+  
+  // ¿Quién puede ver la Tesorería?
+  const puedeVerTesoreria = nombreRol.includes('tesorero') || nombreRol.includes('admin') || nombreRol.includes('representante')
 
   return (
     <div className="flex h-screen bg-unicor-base text-gray-800">
@@ -67,9 +72,9 @@ export default async function DashboardLayout({
           </Link>
         </div>
 
-        {/* --- AQUÍ PASAMOS LA VARIABLE 'esFiscal' --- */}
-        <SidebarNav esFiscal={esAutoridad} />
-        {/* ------------------------------------------- */}
+        {/* --- PASAMOS AMBOS PERMISOS --- */}
+        <SidebarNav esFiscal={puedeVerFiscalia} esTesorero={puedeVerTesoreria} />
+        {/* ------------------------------- */}
 
         {/* Footer Sidebar */}
         <div className="p-4 border-t border-unicor-secondary/30 mt-auto">
