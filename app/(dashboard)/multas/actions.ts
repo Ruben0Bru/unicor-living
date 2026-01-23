@@ -6,46 +6,38 @@ import { redirect } from 'next/navigation'
 export async function crearMulta(formData: FormData) {
   const supabase = await createClient()
   
-  // ... (Validación de usuario y perfil igual que antes) ...
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // 1. OBTENER PERFIL Y ROL
   const { data: perfilAcusador } = await supabase
     .from('perfiles')
-    .select('casa_id, rol_id')
+    .select('casa_id, rol_id, roles(nombre)') // Importante: rol_id y nombre por si acaso
     .eq('id', user.id)
     .single()
 
   if (!perfilAcusador) throw new Error("Perfil no encontrado")
 
-  // Recolección de datos
+  // Recolección de datos del formulario
   const residente_id = formData.get('residente_id') as string
   const sancion_id = formData.get('sancion_id') as string
   const descripcion_personalizada = formData.get('descripcion_personalizada') as string
   const fechaInput = formData.get('fecha_incidente') as string
   const evidenciaFile = formData.get('evidencia') as File
 
-  // --- 👮 REGLA DE LAS 24 HORAS (NUEVO) ---
-  
-  // 1. Determinar fecha del incidente (Si no pone nada, asumimos "ahora")
+  // --- 👮 REGLA DE LAS 24 HORAS ---
   const fechaIncidente = fechaInput ? new Date(fechaInput) : new Date()
   const ahora = new Date()
-
-  // 2. Calcular diferencia en horas
-  // (Resta en milisegundos / 1000 / 60 / 60 = Horas)
   const diferenciaMs = ahora.getTime() - fechaIncidente.getTime()
   const horasTranscurridas = diferenciaMs / (1000 * 60 * 60)
 
-  // 3. Validar prescripción
   if (horasTranscurridas > 24) {
-    // Si pasaron más de 24h, rechazamos y devolvemos error específico
     console.error("Intento de multa prescrita")
     return redirect('/multas/nueva?error=prescrita') 
   }
-  // ------------------------------------------
+  // --------------------------------
 
-  // ... (El resto del código de cálculo de precio, subida de foto e insert sigue IGUAL) ...
-  
+  // 2. CALCULAR VALOR (LÓGICA BIENESTAR x2) ⚖️
   const { data: sancion } = await supabase
     .from('sanciones')
     .select('valor_base')
@@ -54,21 +46,33 @@ export async function crearMulta(formData: FormData) {
     
   let valorFinal = sancion?.valor_base || 0
 
+  // Identificar si es Bienestar (Rol ID 6)
+  const esBienestar = perfilAcusador.rol_id === 6 
+  
+  if (esBienestar) {
+    valorFinal = valorFinal * 2 // 🔥 DOBLE CASTIGO
+  }
+
+  // 🔥 LÓGICA DE PODER SUPREMO:
+  // Si es Bienestar, la multa nace 'aprobada' (no requiere juez).
+  // Si es otro rol (Fiscal, Tesorero, Residente), nace 'pendiente' (va al Estrado).
+  const estadoInicial = esBienestar ? 'aprobada' : 'pendiente'
+
   // Subida de foto...
   let evidencia_url = null
   if (evidenciaFile && evidenciaFile.size > 0) {
-     // ... (tu lógica de upload)
-     const fileExt = evidenciaFile.name.split('.').pop()
-     const fileName = `${Date.now()}-${Math.random()}.${fileExt}`
-     const { error: uploadError } = await supabase.storage
+      const fileExt = evidenciaFile.name.split('.').pop()
+      const fileName = `${Date.now()}-${Math.random()}.${fileExt}`
+      const { error: uploadError } = await supabase.storage
         .from('evidencia').upload(fileName, evidenciaFile)
-     if (!uploadError) {
+      if (!uploadError) {
         const { data: { publicUrl } } = supabase.storage
            .from('evidencia').getPublicUrl(fileName)
         evidencia_url = publicUrl
-     }
+      }
   }
 
+  // 3. INSERTAR
   const { error } = await supabase
     .from('multas')
     .insert({
@@ -79,12 +83,16 @@ export async function crearMulta(formData: FormData) {
       valor: valorFinal, 
       descripcion_personalizada: descripcion_personalizada,
       evidencia_url: evidencia_url,
-      estado: 'pendiente', 
-      es_bienestar: false, 
-      fecha_incidente: fechaIncidente.toISOString() // Guardamos la fecha parseada
+      
+      // ✅ Aquí aplicamos el estado dinámico:
+      estado: estadoInicial, 
+      
+      es_bienestar: esBienestar,
+      fecha_incidente: fechaIncidente.toISOString()
     })
 
   if (error) {
+    console.error("Error al crear multa:", error)
     return redirect('/multas/nueva?error=true')
   }
 

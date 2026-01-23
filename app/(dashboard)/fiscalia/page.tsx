@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import { ClipboardCheck, CheckCircle2, XCircle, User, CalendarClock } from 'lucide-react'
-import { aprobarAseo, rechazarAseo } from './actions'
+import { ClipboardCheck, XCircle } from 'lucide-react'
+import { TareaFiscal } from './TareaFiscal' // <--- Importamos el componente cliente
 
 export default async function FiscaliaPage() {
   const supabase = await createClient()
@@ -61,52 +61,15 @@ export default async function FiscaliaPage() {
       {hayDatos ? (
         <div className="grid gap-4">
             {revisiones.map((tarea) => {
-                // Casteamos a 'any' para evitar quejas de TypeScript con la relación
                 const perfil = (tarea as any).perfiles;
-
                 return (
-                <div key={tarea.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between group hover:border-blue-200 transition-all">
-                    
-                    {/* Info */}
-                    <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden border-2 border-white shadow-sm shrink-0">
-                             {perfil?.avatar_url ? (
-                                <img src={perfil.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                            ) : <User className="w-full h-full p-2 text-gray-400" />}
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-gray-800 text-lg">{perfil?.apodo || "Usuario"}</h3>
-                                <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
-                                    Dice que terminó
-                                </span>
-                            </div>
-                            <p className="text-gray-600 font-medium mt-1">{tarea.tipo_aseo}</p>
-                            <p className="text-sm text-gray-400 italic">"{tarea.descripcion}"</p>
-                            <div className="flex items-center gap-1 text-xs text-gray-400 mt-2">
-                                <CalendarClock size={12} />
-                                <span>Asignado el: {new Date(tarea.fecha_asignada).toLocaleDateString()}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Botones */}
-                    <div className="flex items-center gap-3 w-full md:w-auto">
-                        <form action={rechazarAseo.bind(null, tarea.id)} className="flex-1 md:flex-none">
-                            <button className="w-full md:w-auto px-4 py-3 rounded-xl border border-red-100 text-red-500 font-bold text-sm hover:bg-red-50 hover:border-red-200 transition-colors flex items-center justify-center gap-2">
-                                <XCircle size={18} />
-                                <span className="md:hidden lg:inline">Rechazar</span>
-                            </button>
-                        </form>
-                        <form action={aprobarAseo.bind(null, tarea.id)} className="flex-1 md:flex-none">
-                            <button className="w-full md:w-auto px-6 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 hover:shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                                <CheckCircle2 size={18} />
-                                <span>Aprobar</span>
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )})}
+                    <TareaFiscal 
+                        key={tarea.id} 
+                        tarea={tarea} 
+                        perfil={perfil} 
+                    />
+                )
+            })}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center opacity-60">

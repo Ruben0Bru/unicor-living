@@ -15,21 +15,31 @@ export default async function DashboardLayout({
 
   if (!user) redirect('/login')
 
-  // Traemos 'roles(nombre)' para saber quién es
   const { data: perfil } = await supabase
     .from('perfiles')
     .select('*, roles(nombre)') 
     .eq('id', user.id)
     .single()
 
-  // --- LÓGICA DE PERMISOS GRANULAR ---
-  const nombreRol = perfil?.roles?.nombre?.toLowerCase() || ''
+  // 🛑 1. CHECKPOINT DE SEGURIDAD (ADMISIONES)
+  // Si el usuario existe pero NO está autorizado -> A la sala de espera
+  if (perfil && !perfil.autorizado) {
+      redirect('/espera')
+  }
+
+  // --- LÓGICA DE PERMISOS ---
+  const rawRol = perfil?.roles as any
+  const nombreRol = (rawRol?.nombre || rawRol?.[0]?.nombre || '').toLowerCase()
   
-  // ¿Quién puede ver la Fiscalía?
+  // Roles Estándar
   const puedeVerFiscalia = nombreRol.includes('fiscal') || nombreRol.includes('admin') || nombreRol.includes('representante')
-  
-  // ¿Quién puede ver la Tesorería?
   const puedeVerTesoreria = nombreRol.includes('tesorero') || nombreRol.includes('admin') || nombreRol.includes('representante')
+  const puedeVerSecretaria = nombreRol.includes('secretario') || nombreRol.includes('admin') || nombreRol.includes('representante')
+  const puedeVerEstrado = nombreRol.includes('representante') || nombreRol.includes('admin')
+
+  // 👮‍♂️ Roles Especiales
+  const esBienestar = nombreRol.includes('bienestar')
+  const esAdmin = nombreRol.includes('admin') // <--- Nuevo Flag para el Sidebar
 
   return (
     <div className="flex h-screen bg-unicor-base text-gray-800">
@@ -59,21 +69,30 @@ export default async function DashboardLayout({
             </div>
             
             <p className="font-bold text-lg text-center leading-tight group-hover:text-unicor-accent transition-colors">
-                {perfil?.apodo || "Residente"}
+                {perfil?.apodo || "Funcionario"}
             </p>
             
             <div className="flex items-center gap-1 mt-1">
-                <span className="text-xs text-unicor-accent uppercase tracking-wide">
-                    {perfil?.es_adjudicado ? "Residente Oficial" : "En Prueba"}
+                <span className="text-xs text-unicor-accent uppercase tracking-wide font-bold">
+                    {esAdmin ? "Administrador" : 
+                     esBienestar ? "Bienestar Univ." : 
+                     (perfil?.es_adjudicado ? "Residente Oficial" : "En Prueba")}
                 </span>
-                <span className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 text-xs">✎</span>
             </div>
 
           </Link>
         </div>
 
-        {/* --- PASAMOS AMBOS PERMISOS --- */}
-        <SidebarNav esFiscal={puedeVerFiscalia} esTesorero={puedeVerTesoreria} />
+        {/* --- PASAMOS TODOS LOS PERMISOS --- */}
+        {/* Necesitas actualizar este componente para recibir 'esAdmin' */}
+        <SidebarNav 
+            esFiscal={puedeVerFiscalia} 
+            esTesorero={puedeVerTesoreria} 
+            esSecretario={puedeVerSecretaria} 
+            esRepresentante={puedeVerEstrado}
+            esBienestar={esBienestar}
+            esAdmin={esAdmin} // <--- Pasamos el poder
+        />
         {/* ------------------------------- */}
 
         {/* Footer Sidebar */}
@@ -89,7 +108,11 @@ export default async function DashboardLayout({
 
       {/* CONTENIDO PRINCIPAL */}
       <main className="flex-1 overflow-y-auto p-8 relative">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-unicor-secondary/5 rounded-full blur-3xl -z-10 transform translate-x-1/2 -translate-y-1/2"></div>
+        {/* Decoración de fondo Admin vs Normal */}
+        <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl -z-10 transform translate-x-1/2 -translate-y-1/2
+            ${esAdmin ? 'bg-slate-500/10' : 'bg-unicor-secondary/5'}
+        `}></div>
+        
         {children}
       </main>
 

@@ -3,43 +3,97 @@ import { FormularioMulta } from './FormularioMulta'
 import Link from 'next/link'
 import { ArrowLeft, AlertTriangle, XCircle } from 'lucide-react'
 
-// Definimos el tipo para recibir parámetros de URL (para los errores)
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}
+
+// 👇 1. TIPOS DEFINIDOS (Para evitar el error de 'any')
+type Vecino = { 
+    id: string
+    apodo: string
+    nombre_completo: string | null
+    casa_id: string 
+}
+
+type Casa = { 
+    id: string
+    nombre: string
+    genero: string // <--- Agregamos esto para diferenciar
 }
 
 export default async function NuevaMultaPage({ searchParams }: Props) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 1. Obtener los parámetros de la URL (Esperamos la promesa)
   const params = await searchParams
   const errorType = params.error
 
-  // 2. Mi perfil (Para saber en qué casa estoy)
+  // 2. Mi perfil
   const { data: miPerfil } = await supabase
     .from('perfiles')
-    .select('casa_id')
+    .select('casa_id, roles(nombre)')
     .eq('id', user?.id)
     .single()
 
-  // 3. Vecinos (Acusados potenciales - Excluyéndome a mí)
-  const { data: vecinos } = await supabase
-    .from('perfiles')
-    .select('id, apodo, nombre_completo')
-    .eq('casa_id', miPerfil?.casa_id)
-    .neq('id', user?.id)
+  const rawRol = miPerfil?.roles as any
+  const nombreRol = (rawRol?.nombre || rawRol?.[0]?.nombre || '').toLowerCase()
+  const esBienestar = nombreRol.includes('bienestar') || nombreRol.includes('admin')
 
-  // 4. Catálogo de Sanciones (Para el select)
+  // 3. Lógica de "Vecinos" (Inicialización con Tipos)
+  let vecinos: Vecino[] = []
+  let casas: Casa[] = []
+
+  if (esBienestar) {
+      // CASO A: BIENESTAR
+      const { data: dataCasas } = await supabase
+        .from('casas')
+        // 👇 IMPORTANTE: Traemos 'genero'
+        .select('id, nombre, genero')
+        .neq('nombre', 'Sede Administrativa')
+        .order('nombre')
+      
+      // Casting seguro para TS
+      casas = (dataCasas || []) as Casa[]
+
+      const { data: dataResidentes } = await supabase
+        .from('perfiles')
+        .select('id, apodo, nombre_completo, casa_id')
+        .not('casa_id', 'is', null) 
+        .neq('id', user?.id)
+      
+      vecinos = (dataResidentes || []).map(r => ({
+          id: r.id,
+          apodo: r.apodo,
+          nombre_completo: r.nombre_completo,
+          casa_id: r.casa_id!
+      }))
+
+  } else {
+      // CASO B: RESIDENTE
+      const { data: dataVecinos } = await supabase
+        .from('perfiles')
+        .select('id, apodo, nombre_completo, casa_id')
+        .eq('casa_id', miPerfil?.casa_id)
+        .neq('id', user?.id)
+      
+      vecinos = (dataVecinos || []).map(r => ({
+          id: r.id,
+          apodo: r.apodo,
+          nombre_completo: r.nombre_completo,
+          casa_id: r.casa_id!
+      }))
+  }
+
+  // 4. Catálogo de Sanciones
   const { data: sanciones } = await supabase
     .from('sanciones')
     .select('*')
+    .eq('categoria', 'disciplinaria')
     .order('valor_base', { ascending: true })
 
   return (
     <div className="max-w-2xl mx-auto">
       
-      {/* --- BOTÓN DE VOLVER --- */}
       <Link 
         href="/multas" 
         className="inline-flex items-center text-gray-500 hover:text-unicor-primary transition-colors mb-6 group"
@@ -48,40 +102,40 @@ export default async function NuevaMultaPage({ searchParams }: Props) {
         <span className="font-medium">Volver al historial</span>
       </Link>
 
-      {/* --- ZONA DE ALERTAS Y ERRORES --- */}
-      
-      {/* Caso 1: Multa Prescrita (+24h) */}
+      {/* --- ERRORES --- */}
       {errorType === 'prescrita' && (
         <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r shadow-sm flex items-start gap-3 animate-pulse">
           <AlertTriangle className="text-red-500 flex-shrink-0 mt-1" />
           <div className="text-red-800">
             <p className="font-bold">¡Solicitud Rechazada!</p>
-            <p className="text-sm">La infracción ocurrió hace más de 24 horas. Según el reglamento interno, la falta ha prescrito y no se puede procesar.</p>
+            <p className="text-sm">La infracción prescribió (+24h).</p>
           </div>
         </div>
       )}
 
-      {/* Caso 2: Error Genérico de Base de Datos */}
       {errorType === 'true' && (
         <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r shadow-sm flex items-start gap-3">
           <XCircle className="text-red-500 flex-shrink-0 mt-1" />
           <div className="text-red-800">
             <p className="font-bold">Error del Sistema</p>
-            <p className="text-sm">No se pudo guardar la multa. Inténtalo de nuevo o contacta soporte.</p>
+            <p className="text-sm">No se pudo guardar la multa.</p>
           </div>
         </div>
       )}
 
-      {/* --- ENCABEZADO --- */}
+      {/* --- HEADER --- */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-unicor-primary">Reportar Infracción 👮</h1>
-        <p className="text-gray-500">Selecciona la falta del catálogo oficial.</p>
+        <p className="text-gray-500">
+            {esBienestar ? 'Selecciona la casa y el residente a sancionar.' : 'Selecciona la falta del catálogo oficial.'}
+        </p>
       </div>
 
-      {/* --- FORMULARIO INTERACTIVO --- */}
+      {/* --- FORMULARIO --- */}
       <FormularioMulta 
-        vecinos={vecinos || []} 
+        vecinos={vecinos} 
         sanciones={sanciones || []} 
+        casas={casas} 
       />
     </div>
   )

@@ -15,18 +15,17 @@ export async function completarPerfil(formData: FormData) {
   // 1. Recolección de Datos Básicos
   const apodo = formData.get('apodo') as string
   const nombre_completo = formData.get('nombre_completo') as string
-  const documento_identidad = formData.get('documento_identidad') as string
-  const tipo_sangre = formData.get('tipo_sangre') as string
   const casa_id = formData.get('casa_id') as string
   const biografia = formData.get('biografia') as string
-  // 👇 CAMBIO 1: Capturamos el teléfono del formulario
   const telefono = formData.get('telefono') as string 
   const avatarFile = formData.get('avatar') as File
   
-  // 2. Recolección de Datos Académicos y Personales
-  const programa_academico = formData.get('programa_academico') as string
-  const semestre_actual = formData.get('semestre_actual') as string
-  const fecha_nacimiento = formData.get('fecha_nacimiento') as string
+  // 2. Datos Opcionales (Residentes vs Administrativos)
+  const docRaw = formData.get('documento_identidad') as string
+  const sangreRaw = formData.get('tipo_sangre') as string
+  const progRaw = formData.get('programa_academico') as string
+  const semRaw = formData.get('semestre_actual') as string
+  const nacRaw = formData.get('fecha_nacimiento') as string
   const hobbiesRaw = formData.get('hobbies') as string | null
 
   // 3. Procesar Hobbies
@@ -53,22 +52,25 @@ export async function completarPerfil(formData: FormData) {
   }
 
   // 5. UPSERT (Guardar en Base de Datos)
+  // IMPORTANTE: Asegúrate de haber corrido los ALTER TABLE para DROP NOT NULL en la BD
   const { error } = await supabase
     .from('perfiles')
     .upsert({  
       id: user.id, 
       apodo,
       nombre_completo,
-      documento_identidad,
-      tipo_sangre,
       casa_id,
       biografia,
-      // 👇 CAMBIO 2: Guardamos el teléfono en la base de datos
-      telefono: telefono, 
+      telefono: telefono || null,
+      
+      // 👇 Si viene string vacío "", guardamos null
+      documento_identidad: docRaw || null,
+      tipo_sangre: sangreRaw || null,
+      programa_academico: progRaw || null,
+      semestre_actual: semRaw ? Number(semRaw) : null,
+      fecha_nacimiento: nacRaw || null,
+      
       ...(avatar_url && { avatar_url }), 
-      programa_academico,
-      semestre_actual: Number(semestre_actual),
-      fecha_nacimiento, 
       hobbies,           
       es_adjudicado: false,
       updated_at: new Date().toISOString() 
@@ -79,7 +81,7 @@ export async function completarPerfil(formData: FormData) {
     return redirect('/setup?error=true')
   }
 
-  // 6. Limpiar caché y redirigir al Dashboard
+  // 6. Limpiar caché y redirigir
   revalidatePath('/', 'layout')
   return redirect('/')
 }
