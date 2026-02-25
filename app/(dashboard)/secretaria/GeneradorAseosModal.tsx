@@ -112,7 +112,7 @@ export function GeneradorAseosModal({ residentes }: { residentes: Residente[] })
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><Calendar size={24} /></div>
                 <div>
-                  <h2 className="text-xl font-black text-slate-800">Motor de Asignación</h2>
+                  <h2 className="text-xl font-black text-slate-800">Generador de Aseos</h2>
                   <p className="text-sm text-slate-500">Configura el ciclo operativo mensual.</p>
                 </div>
               </div>
@@ -152,7 +152,7 @@ export function GeneradorAseosModal({ residentes }: { residentes: Residente[] })
                 disabled={loading}
                 className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-8 py-2.5 rounded-xl font-bold transition-transform active:scale-95 disabled:opacity-50"
               >
-                {loading ? <><Loader2 size={18} className="animate-spin" /> Procesando...</> : 'Arrancar V8'}
+                {loading ? <><Loader2 size={18} className="animate-spin" /> Procesando...</> : 'Generar'}
               </button>
             </div>
           </div>
