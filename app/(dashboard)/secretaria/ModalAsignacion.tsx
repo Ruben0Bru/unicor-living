@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Save, Utensils, Home, Bath, Trash2, Sparkles, PlusCircle, Trash, Users, CalendarClock } from 'lucide-react'
+import { X, Save, Utensils, Home, Bath, Trash2, Sparkles, PlusCircle, Trash, Users } from 'lucide-react'
 import { guardarAsignacionesDia } from './actions'
 
-// 1. Tipos
 type Residente = {
     id: string
     apodo: string
@@ -13,47 +12,44 @@ type Residente = {
 }
 
 const TIPOS_FIJOS = [
-    { id: 'Cocina', icon: Utensils, color: 'text-orange-500', bg: 'bg-orange-50' },
-    { id: 'Casa', icon: Home, iconColor: 'text-blue-500', bg: 'bg-blue-50' },
-    { id: 'Baño', icon: Bath, iconColor: 'text-cyan-500', bg: 'bg-cyan-50' },
-    { id: 'Basura', icon: Trash2, iconColor: 'text-red-500', bg: 'bg-red-50' },
+    { id: 'Cocina', label: 'Cocina', icon: Utensils, color: 'text-orange-500', bg: 'bg-orange-50' },
+    { id: 'Casa', label: 'Casa General', icon: Home, color: 'text-blue-500', bg: 'bg-blue-50' },
+    { id: 'Baño', label: 'Baños', icon: Bath, color: 'text-cyan-500', bg: 'bg-cyan-50' },
+    { id: 'Basura', label: 'Basura', icon: Trash2, color: 'text-red-500', bg: 'bg-red-50' },
 ]
 
 export function ModalAsignacion({ isOpen, onClose, fecha, residentes, asignacionesDelDia }: any) {
     if (!isOpen) return null
     
     const [loading, setLoading] = useState(false)
-    const fechaIso = fecha.toISOString().split('T')[0] // Fecha de inicio (la del click)
+    const fechaIso = fecha.toISOString().split('T')[0]
 
-    // A. TAREAS FIJAS
     const [seleccion, setSeleccion] = useState<Record<string, string>>(() => {
         const inicial: Record<string, string> = {}
         asignacionesDelDia.forEach((a: any) => {
-            if (TIPOS_FIJOS.find(t => t.id === a.tipo_aseo)) {
-                inicial[a.tipo_aseo] = a.residente_id
+            const tipoId = a.tipo_aseo 
+            if (TIPOS_FIJOS.find(t => t.id === tipoId)) {
+                inicial[tipoId] = a.residente_id
             }
         })
         return inicial
     })
 
-    // B. TAREAS GENERALES (Ahora con fecha límite)
     const [tareasGenerales, setTareasGenerales] = useState<{ id: string, nombre: string, limite: string }[]>(() => {
         const nombresUnicos = new Set<string>()
         asignacionesDelDia.forEach((a: any) => {
-            if (!TIPOS_FIJOS.find(t => t.id === a.tipo_aseo)) {
-                nombresUnicos.add(a.tipo_aseo)
+            const tipoId = a.tipo_aseo
+            if (!TIPOS_FIJOS.find(t => t.id === tipoId)) {
+                nombresUnicos.add(tipoId)
             }
         })
-        // Nota: Al editar, asumimos que el límite es el mismo día si no lo tenemos guardado en el estado local complejo
-        // Para simplificar la edición, aquí reseteamos a valores por defecto o habría que traer el límite real.
         return Array.from(nombresUnicos).map(nombre => ({
             id: Math.random().toString(),
             nombre: nombre,
-            limite: fechaIso // Por defecto el mismo día
+            limite: fechaIso
         }))
     })
 
-    // --- MANEJADORES ---
     const getCandidatosFijos = (tipoAseo: string) => {
         return (residentes as Residente[]).filter((r) => {
             if (tipoAseo === 'Basura') return r.es_adjudicado === true
@@ -79,24 +75,21 @@ export function ModalAsignacion({ isOpen, onClose, fecha, residentes, asignacion
         setTareasGenerales(prev => prev.filter(t => t.id !== id))
     }
 
-    // --- GUARDADO ---
     const handleSave = async () => {
         setLoading(true)
         try {
-            // 1. Fijas
             const payloadFijas = Object.entries(seleccion).map(([tipo, residenteId]) => {
                 if (!residenteId) return null
                 return {
                     residente_id: residenteId,
-                    tipo_aseo: tipo,
-                    descripcion: `Aseo de ${tipo}`,
+                    tipo_aseo: tipo, 
+                    descripcion: `Aseo de ${TIPOS_FIJOS.find(t => t.id === tipo)?.label || tipo}`,
                     fecha_asignada: fechaIso,
-                    fecha_limite: fechaIso, // Fijas vencen hoy
+                    fecha_limite: fechaIso,
                     realizado: false
                 }
             }).filter(Boolean)
 
-            // 2. Generales (MASIVAS CON PLAZO 📅)
             const payloadGenerales: any[] = []
             
             tareasGenerales.forEach(tarea => {
@@ -105,10 +98,10 @@ export function ModalAsignacion({ isOpen, onClose, fecha, residentes, asignacion
                 (residentes as Residente[]).forEach(residente => {
                     payloadGenerales.push({
                         residente_id: residente.id,
-                        tipo_aseo: tarea.nombre,
+                        tipo_aseo: tarea.nombre, 
                         descripcion: "Aseo General Programado",
                         fecha_asignada: fechaIso,
-                        fecha_limite: tarea.limite, // <--- AQUÍ VA EL PLAZO
+                        fecha_limite: tarea.limite, 
                         realizado: false
                     })
                 })
@@ -128,7 +121,6 @@ export function ModalAsignacion({ isOpen, onClose, fecha, residentes, asignacion
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="bg-white w-full max-w-md max-h-[90vh] flex flex-col rounded-3xl shadow-2xl overflow-hidden scale-100 animate-in zoom-in-95 duration-200">
                 
-                {/* Header */}
                 <div className="bg-gray-900 text-white p-6 flex justify-between items-center shrink-0">
                     <div>
                         <h3 className="text-xl font-bold">Asignar Tareas</h3>
@@ -143,7 +135,6 @@ export function ModalAsignacion({ isOpen, onClose, fecha, residentes, asignacion
 
                 <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
                     
-                    {/* TAREAS FIJAS */}
                     <div className="space-y-4">
                         {TIPOS_FIJOS.map((tipo) => {
                             const Icon = tipo.icon
@@ -157,7 +148,7 @@ export function ModalAsignacion({ isOpen, onClose, fecha, residentes, asignacion
                                     </div>
                                     <div className="flex-1">
                                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">
-                                            {tipo.id} {tipo.id === 'Basura' && <span className="text-red-400 text-[10px]">(Adjudicados)</span>}
+                                            {tipo.label} {tipo.id === 'Basura' && <span className="text-red-400 text-[10px]">(Adjudicados)</span>}
                                         </label>
                                         <select
                                             value={valorActual}
@@ -177,7 +168,6 @@ export function ModalAsignacion({ isOpen, onClose, fecha, residentes, asignacion
 
                     <div className="border-t border-gray-100 my-4"></div>
 
-                    {/* TAREAS GENERALES */}
                     <div>
                         <div className="flex items-center justify-between mb-3">
                             <h4 className="font-bold text-gray-700 flex items-center gap-2">
@@ -206,15 +196,14 @@ export function ModalAsignacion({ isOpen, onClose, fecha, residentes, asignacion
                                                 placeholder="Descripción (Ej: Aseo de Gabeta)" 
                                                 value={tarea.nombre}
                                                 onChange={(e) => updateGeneral(tarea.id, 'nombre', e.target.value)}
-                                                className="w-full text-sm bg-transparent border-none p-0 focus:ring-0 font-bold text-gray-700 placeholder:text-gray-400"
+                                                className="w-full text-sm bg-transparent border-none p-0 focus:ring-0 font-bold text-gray-700 placeholder:text-gray-400 outline-none"
                                                 autoFocus
                                             />
-                                            <button onClick={() => borrarGeneral(tarea.id)} className="text-red-300 hover:text-red-500 p-2">
+                                            <button onClick={() => borrarGeneral(tarea.id)} className="text-red-300 hover:text-red-500 p-2 transition-colors">
                                                 <Trash size={16} />
                                             </button>
                                         </div>
                                         
-                                        {/* Selector de Fecha Límite */}
                                         <div className="flex items-center gap-2 pl-11">
                                             <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wide">Vence:</span>
                                             <input 

@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 @theme {
-  /* Aquí definimos tu paleta "Única y Detergente" directamente */
   
   --color-unicor-base: #F4F7F6;      /* Fondo gris/verdoso suave */
   --color-unicor-primary: #104928;   /* Verde Institucional Oscuro */

@@ -254,7 +254,7 @@ export default async function DashboardPage() {
               <h3 className="font-bold text-gray-700 mb-2 flex items-center gap-2"><ShieldAlert className="text-blue-500" size={20} /> Acciones Rápidas</h3>
               <p className="text-sm text-gray-400 mb-6">¿Viste algo fuera de lugar? Reporta para mantener el orden.</p>
            </div>
-           <Link href="/multas/nueva" className="w-full bg-gray-50 hover:bg-unicor-primary group-hover:bg-unicor-primary hover:text-white text-gray-700 font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-3 border border-gray-200 group-hover:border-unicor-primary">
+           <Link href="/multas/nueva" className="w-full bg-gray-50 hover:bg-unicor-primary group-hover:bg-unicor-primary group-hover:text-white text-black font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-3 border border-gray-200 group-hover:border-unicor-primary">
               <PlusCircle size={20} />
               <span>Reportar Infracción</span>
               <ArrowRight size={18} className="opacity-0 group-hover:opacity-100 -ml-2 group-hover:ml-0 transition-all" />

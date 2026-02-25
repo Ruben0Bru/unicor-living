@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import { Wallet, User, Megaphone, PlusCircle, DollarSign, Filter, CheckCircle2, Landmark } from 'lucide-react'
+import { Wallet, User, Megaphone, PlusCircle, DollarSign, Filter, CheckCircle2, Landmark, Eye } from 'lucide-react'
 import Link from 'next/link'
 import { generarCuotasMensuales, generarCuotaSemestre } from './actions'
 
@@ -162,7 +162,7 @@ export default async function TesoreriaPage() {
                               <p className={`text-2xl font-black ${res.totalDeuda > 0 ? 'text-red-500' : 'text-green-500'}`}>${res.totalDeuda.toLocaleString()}</p>
                           </div>
                           <Link href={`/tesoreria/${res.id}`} className="bg-gray-50 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 p-3 rounded-xl transition-colors">
-                              <PlusCircle size={24} />
+                              <Eye size={24} />
                           </Link>
                       </div>
                   </div>

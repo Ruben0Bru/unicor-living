@@ -2,6 +2,8 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { GeneradorAseosPayload } from '@/types/aseos'
+import { generarMatrizAseos } from '@/lib/aseosEngine'
 
 // 1. OBTENER DATOS (FILTRADOS POR CASA 🏠)
 export async function obtenerDatosPlanificacion() {
@@ -68,4 +70,51 @@ export async function guardarAsignacionesDia(fechaIso: string, nuevasAsignacione
 
     revalidatePath('/secretaria')
     revalidatePath('/') 
+}
+//Motor de generación masiva
+export async function generarAseosMensuales(payload: GeneradorAseosPayload) {
+  const supabase = await createClient();
+  
+  // 1. Verificación de Seguridad y Contexto
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado");
+
+  const { data: perfil } = await supabase
+    .from('perfiles')
+    .select('casa_id, roles(nombre)')
+    .eq('id', user.id)
+    .single();
+
+  if (!perfil?.casa_id) throw new Error("Usuario sin casa asignada");
+
+  const rol = (perfil.roles as any)?.nombre?.toLowerCase() || '';
+  if (!rol.includes('admin') && !rol.includes('secretario')) {
+    throw new Error("Privilegios insuficientes para generar aseos.");
+  }
+
+  // 2. Procesamiento Lógico (Inyectamos el casa_id seguro desde el servidor)
+  const payloadSeguro = {
+      ...payload,
+      casa_id: perfil.casa_id
+  };
+
+  const matrizAseos = generarMatrizAseos(payloadSeguro);
+
+  if (matrizAseos.length === 0) {
+    throw new Error("El motor no generó asignaciones. Revisa los parámetros.");
+  }
+
+  // 3. Ingesta Masiva en la DB
+  const { error } = await supabase
+    .from('asignaciones') // 👈 Corregido al nombre de tu tabla
+    .insert(matrizAseos);
+
+  if (error) {
+    console.error("Error en la transacción DB:", error);
+    throw new Error(`Fallo en base de datos al guardar: ${error.message}`);
+  }
+
+  // 4. Refrescar Vistas
+  revalidatePath('/secretaria');
+  revalidatePath('/'); 
 }
