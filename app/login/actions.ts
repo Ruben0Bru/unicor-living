@@ -58,9 +58,12 @@ export async function solicitarRecuperacion(formData: FormData) {
   const supabase = await createClient()
   const email = formData.get('email') as string
 
-  // Obtenemos el origen para saber si estamos en localhost o vercel
-  // Usar origin = null por defecto evita que falle si se llama desde un contexto sin headers
-  let origin = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  // 1. Buscamos la variable explícita que configuraste.
+  // 2. Si falla, buscamos la variable interna de Vercel (y le concatenamos https://).
+  // 3. Si ambas fallan (estás desarrollando en tu PC), usamos localhost.
+  let origin = 
+    process.env.NEXT_PUBLIC_SITE_URL || 
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
   try {
     const { headers } = await import('next/headers')
     const headersList = await headers()
