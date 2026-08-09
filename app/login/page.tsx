@@ -62,7 +62,7 @@ export default async function LoginPage(props: {
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          ¿Olvidaste tu contraseña? <Link href="#" className="text-unicor-primary hover:underline font-medium">Recupérala aquí</Link>
+          ¿Olvidaste tu contraseña? <Link href="/recuperar" className="text-unicor-primary hover:underline font-medium">Recupérala aquí</Link>
         </p>
       </div>
     </div>
