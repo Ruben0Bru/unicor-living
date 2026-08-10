@@ -36,15 +36,12 @@ export function SidebarNav({
   // 2. GESTIÓN
   routes.push({ name: 'Cartelera', path: '/anuncios', icon: Megaphone })
 
-  // 👇 LÓGICA INTELIGENTE PARA REGLAMENTO
+// REGLAMENTO
+  routes.push({ name: 'Reglamento', path: '/reglamento', icon: Book })
   if (esAdmin || esRepresentante) {
       // Los jefes van al Editor
       routes.push({ name: 'Editor Legal', path: '/admin/reglamento', icon: Scale })
-  } else {
-      // Los mortales van a leer
-      routes.push({ name: 'Reglamento', path: '/reglamento', icon: Book })
-  }
-
+  } 
   // 3. MENÚ DE RESIDENTE (Personal)
   if (!esAdmin && !esBienestar) {
       routes.push({ name: 'Mis Multas', path: '/multas', icon: AlertCircle })
