@@ -59,7 +59,8 @@ export default async function FiscaliaPage() {
 
       {/* LISTA DE REVISIONES */}
       {hayDatos ? (
-        <div className="grid gap-4">
+        <div className="w-full overflow-x-auto custom-scrollbar pb-4">
+          <div className="grid gap-4">
             {revisiones.map((tarea) => {
                 const perfil = (tarea as any).perfiles;
                 return (
@@ -70,6 +71,7 @@ export default async function FiscaliaPage() {
                     />
                 )
             })}
+          </div>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center opacity-60">

@@ -41,14 +41,14 @@ export async function proxy(request: NextRequest) {
     return redirectResponse
   }
 
-  try {
+try {
     const { data: { user } } = await supabase.auth.getUser()
 
-const isPublicRoute = 
-  request.nextUrl.pathname.startsWith('/login') || 
-  request.nextUrl.pathname.startsWith('/auth') ||
-  request.nextUrl.pathname.startsWith('/recuperar') ||
-  request.nextUrl.pathname.startsWith('/resetear-password')
+    const isPublicRoute = 
+      request.nextUrl.pathname.startsWith('/login') || 
+      request.nextUrl.pathname.startsWith('/auth') ||
+      request.nextUrl.pathname.startsWith('/recuperar') ||
+      request.nextUrl.pathname.startsWith('/resetear-password')
 
     // 1. No hay usuario y la ruta es protegida -> Redirigir a Login con cookies purgadas
     if (!user && !isPublicRoute) {
@@ -59,18 +59,35 @@ const isPublicRoute =
     if (user) {
       const { data: perfil } = await supabase
         .from('perfiles')
-        .select('apodo')
+        .select('apodo, autorizado')
         .eq('id', user.id)
         .single()
 
-      const isSetupPage = request.nextUrl.pathname.startsWith('/setup')
-      const isProfileComplete = Boolean(perfil?.apodo)
+      // Si el perfil es null, significa que el Administrador RECHAZÓ (eliminó) la solicitud.
+      // Lo mandamos al login con un mensaje claro.
+      if (!perfil) {
+        return redirectWithCookies('/login?message=Tu solicitud de ingreso fue rechazada o eliminada.')
+      }
 
-      if (!isProfileComplete && !isSetupPage) {
+      const isSetupPage = request.nextUrl.pathname.startsWith('/setup')
+      const isEsperaPage = request.nextUrl.pathname.startsWith('/espera')
+      
+      const isProfileComplete = Boolean(perfil?.apodo)
+      const isAutorizado = Boolean(perfil?.autorizado)
+
+      // ESTADO A: No autorizado -> Siempre a la sala de espera
+      if (!isAutorizado && !isEsperaPage) {
+        return redirectWithCookies('/espera')
+      }
+
+      // ESTADO B: Autorizado pero sin perfil -> Siempre al setup
+      if (isAutorizado && !isProfileComplete && !isSetupPage) {
         return redirectWithCookies('/setup')
       }
 
-      if (isProfileComplete && isSetupPage) {
+      // ESTADO C: Autorizado y con perfil (Usuario Funcional)
+      // Si intenta regresar a espera o setup, lo forzamos al Dashboard
+      if (isAutorizado && isProfileComplete && (isEsperaPage || isSetupPage)) {
         return redirectWithCookies('/')
       }
     }

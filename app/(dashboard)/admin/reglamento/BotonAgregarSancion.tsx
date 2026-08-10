@@ -36,10 +36,10 @@ export function BotonAgregarSancion({ reglamentoId }: { reglamentoId: string }) 
                     <input type="hidden" name="reglamento_id" value={reglamentoId} />
                 </div>
                 <div className="flex flex-col gap-1">
-                    <button type="submit" disabled={loading} className="bg-green-500 text-white p-1 rounded hover:bg-green-600">
+                    <button type="submit" disabled={loading} className="bg-green-500 text-white p-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-green-600">
                         <Check size={14} />
                     </button>
-                    <button type="button" onClick={() => setEditando(false)} className="bg-red-400 text-white p-1 rounded hover:bg-red-500">
+                    <button type="button" onClick={() => setEditando(false)} className="bg-red-400 text-white p-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-red-500">
                         <X size={14} />
                     </button>
                 </div>

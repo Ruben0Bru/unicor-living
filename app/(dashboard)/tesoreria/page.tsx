@@ -112,30 +112,30 @@ export default async function TesoreriaPage() {
 
              {/* 2. Botón SEMESTRE */}
              {yaCobroSemestre ? (
-                <button disabled className="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 cursor-not-allowed border border-blue-200 opacity-80">
+                 <button disabled className="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 cursor-not-allowed border border-blue-200 opacity-80 min-h-[44px]">
                     <CheckCircle2 size={16} /> <span className="hidden sm:inline">Semestre OK</span>
                 </button>
              ) : (
                 <form action={generarCuotaSemestre}>
-                    <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg transition-all active:scale-95">
+                    <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg transition-all active:scale-95 min-h-[44px]">
                         <Landmark size={16} /> <span className="hidden sm:inline">Cobrar Semestre</span>
                     </button>
                 </form>
              )}
              
-             <button className="bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all">
+             <button className="bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all min-h-[44px]">
                  <Filter size={16} />
              </button>
         </div>
       </div>
 
       {/* TABLA RESIDENTES */}
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-4 w-full overflow-x-auto custom-scrollbar pb-4">
           {listaResidentes.map((res) => (
-              <div key={res.id} className={`relative overflow-hidden rounded-2xl p-0.5 transition-all hover:scale-[1.01] ${res.totalDeuda > 0 ? 'bg-gradient-to-r from-red-500 to-orange-500 shadow-red-100' : 'bg-gray-100'}`}>
-                  <div className="bg-white p-4 rounded-[14px] flex flex-col sm:flex-row items-center justify-between gap-4 h-full">
+              <div key={res.id} className={`relative overflow-hidden rounded-2xl p-0.5 transition-all hover:scale-[1.01] min-w-[700px] ${res.totalDeuda > 0 ? 'bg-gradient-to-r from-red-500 to-orange-500 shadow-red-100' : 'bg-gray-100'}`}>
+                  <div className="bg-white p-4 rounded-[14px] flex flex-row items-center justify-between gap-4 h-full">
                       
-                      <div className="flex items-center gap-4 w-full sm:w-auto">
+                      <div className="flex items-center gap-4 w-auto">
                           <div className="relative">
                             <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden border-2 border-white shadow-sm">
                                 {res.avatar_url ? <img src={res.avatar_url} alt="Av" className="w-full h-full object-cover" /> : <User className="w-full h-full p-3 text-gray-400" />}
@@ -156,12 +156,12 @@ export default async function TesoreriaPage() {
                           </div>
                       </div>
 
-                      <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-gray-100 pt-3 sm:pt-0 mt-2 sm:mt-0">
+                      <div className="flex items-center gap-6 w-auto justify-end border-gray-100 pt-0 mt-0">
                           <div className="text-right">
                               <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Deuda Total</p>
                               <p className={`text-2xl font-black ${res.totalDeuda > 0 ? 'text-red-500' : 'text-green-500'}`}>${res.totalDeuda.toLocaleString()}</p>
                           </div>
-                          <Link href={`/tesoreria/${res.id}`} className="bg-gray-50 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 p-3 rounded-xl transition-colors">
+                          <Link href={`/tesoreria/${res.id}`} className="bg-gray-50 hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 p-3 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center">
                               <Eye size={24} />
                           </Link>
                       </div>

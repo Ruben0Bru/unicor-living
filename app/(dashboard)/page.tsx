@@ -22,13 +22,17 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single();
 
-  // 2. REDIRECCIÓN DE BIENESTAR 🚨
-  // TypeScript a veces se queja de que roles es array u objeto. Lo forzamos.
+// 2. REDIRECCIÓN BASADA EN ROLES 🚨
   const rawRol = perfil?.roles as any;
   const nombreRol = (rawRol?.nombre || rawRol?.[0]?.nombre || '').toLowerCase();
 
-  // Si es Bienestar o Admin, ¡fuera de aquí! A su oficina.
-  if (nombreRol.includes('bienestar') || nombreRol.includes('admin')) {
+  // El Admin tiene prioridad y va a su propio panel
+  if (nombreRol.includes('admin')) {
+      redirect('/admin');
+  }
+
+  // Bienestar va a su vista específica
+  if (nombreRol.includes('bienestar')) {
       redirect('/bienestar');
   }
 

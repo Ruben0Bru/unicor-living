@@ -80,7 +80,7 @@ export function CalendarioSecretario({ residentes, asignacionesIniciales }: { re
 
         <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
             {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => (
-                <div key={d} className="py-3 text-center text-xs font-bold text-gray-400 uppercase tracking-wider">{d}</div>
+                <div key={d} className="py-3 text-center text-xs font-bold text-gray-400 uppercase tracking-wider truncate">{d}</div>
             ))}
         </div>
 
@@ -106,9 +106,9 @@ export function CalendarioSecretario({ residentes, asignacionesIniciales }: { re
                         <div 
                             key={dia.toISOString()} 
                             onClick={() => handleClickDia(dia)}
-                            className={`bg-white hover:bg-purple-50 transition-colors cursor-pointer p-2 flex flex-col gap-1 group relative ${esHoy ? 'bg-purple-50/30' : ''}`}
+                            className={`bg-white hover:bg-purple-50 transition-colors cursor-pointer p-1 md:p-4 flex flex-col gap-1 group relative ${esHoy ? 'bg-purple-50/30' : ''}`}
                         >
-                            <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full mb-1 ${esHoy ? 'bg-purple-600 text-white shadow-md' : 'text-gray-700 group-hover:bg-white'}`}>
+                            <span className={`text-sm font-bold w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full mb-1 ${esHoy ? 'bg-purple-600 text-white shadow-md' : 'text-gray-700 group-hover:bg-white'}`}>
                                 {dia.getDate()}
                             </span>
 

@@ -25,8 +25,8 @@ export function CasaCard({ casa }: { casa: any }) {
                     <div className="flex justify-between items-center mb-4">
                         <div className="bg-indigo-200 p-3 rounded-xl text-indigo-700"><Home size={24} /></div>
                         <div className="flex gap-2">
-                            <button type="button" onClick={() => setEditando(false)} className="p-2 bg-white text-red-500 rounded-lg"><X size={20} /></button>
-                            <button type="submit" disabled={loading} className="p-2 bg-indigo-600 text-white rounded-lg flex items-center gap-2 px-4 font-bold"><Save size={20} /> Guardar</button>
+                            <button type="button" onClick={() => setEditando(false)} className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white text-red-500 rounded-lg"><X size={20} /></button>
+                            <button type="submit" disabled={loading} className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center bg-indigo-600 text-white rounded-lg gap-2 px-4 font-bold"><Save size={20} /> Guardar</button>
                         </div>
                     </div>
 

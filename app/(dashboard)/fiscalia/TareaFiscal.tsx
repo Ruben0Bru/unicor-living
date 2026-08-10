@@ -41,7 +41,7 @@ export function TareaFiscal({ tarea, perfil }: { tarea: any, perfil: any }) {
   return (
     <>
         {/* TARJETA VISUAL */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between group hover:border-blue-200 transition-all">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-row gap-6 items-center justify-between group hover:border-blue-200 transition-all min-w-[700px]">
             
             {/* Info del Residente (Igual que antes) */}
             <div className="flex items-start gap-4 flex-1">
@@ -67,22 +67,22 @@ export function TareaFiscal({ tarea, perfil }: { tarea: any, perfil: any }) {
             </div>
 
             {/* BOTONES DE ACCIÓN */}
-            <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-3 w-auto">
                 {/* Botón Rechazar (Abre Modal) */}
                 <button 
                     onClick={() => setModoRechazo(true)}
                     disabled={loading}
-                    className="flex-1 md:flex-none w-full md:w-auto px-4 py-3 rounded-xl border border-red-100 text-red-500 font-bold text-sm hover:bg-red-50 hover:border-red-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-auto px-4 py-3 rounded-xl border border-red-100 text-red-500 font-bold text-sm hover:bg-red-50 hover:border-red-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px]"
                 >
                     <XCircle size={18} />
-                    <span className="md:hidden lg:inline">Rechazar</span>
+                    <span>Rechazar</span>
                 </button>
 
                 {/* Botón Aprobar (Directo) */}
                 <button 
                     onClick={handleAprobar}
                     disabled={loading}
-                    className="flex-1 md:flex-none w-full md:w-auto px-6 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 hover:shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-auto px-6 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 hover:shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px]"
                 >
                     {loading ? '...' : <CheckCircle2 size={18} />}
                     <span>Aprobar</span>

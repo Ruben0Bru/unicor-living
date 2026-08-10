@@ -107,7 +107,7 @@ export function GeneradorAseosModal({ residentes }: { residentes: Residente[] })
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white w-[95%] md:max-w-4xl rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-slate-50">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><Calendar size={24} /></div>
@@ -116,7 +116,7 @@ export function GeneradorAseosModal({ residentes }: { residentes: Residente[] })
                   <p className="text-sm text-slate-500">Configura el ciclo operativo mensual.</p>
                 </div>
               </div>
-              <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:bg-slate-200 p-2 rounded-xl transition-colors"><X size={24}/></button>
+              <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:bg-slate-200 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors"><X size={24}/></button>
             </div>
 
             <div className="p-6 overflow-y-auto max-h-[60vh]">

@@ -49,14 +49,17 @@ export function AdminUsersTable({ usuarios, roles, casas }: { usuarios: Usuario[
     const activos = usuarios.filter(u => u.autorizado)
     const listaActual = tab === 'pendientes' ? solicitudes : activos
     
-    const usuariosFiltrados = listaActual.filter(u => {
+const usuariosFiltrados = listaActual.filter(u => {
+        // Protección contra valores nulos inyectando strings vacíos
+        const apodoSeguro = u.apodo || ''
+        const emailSeguro = u.email || ''
+
         const matchTexto = 
-            u.apodo.toLowerCase().includes(busqueda.toLowerCase()) || 
-            u.email.toLowerCase().includes(busqueda.toLowerCase())
+            apodoSeguro.toLowerCase().includes(busqueda.toLowerCase()) || 
+            emailSeguro.toLowerCase().includes(busqueda.toLowerCase())
         const matchCasa = filtroCasa === 'all' || u.casa_id === filtroCasa
         return matchTexto && matchCasa
     })
-
     // --- HANDLERS ---
     const handleAprobar = async (uid: string) => {
         if (!tempCasa || !tempRol) {
@@ -170,7 +173,7 @@ export function AdminUsersTable({ usuarios, roles, casas }: { usuarios: Usuario[
                 ) : (
                     <div className="space-y-3">
                         {usuariosFiltrados.map(u => (
-                            <div key={u.id} className={`flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4 rounded-2xl border transition-all shadow-sm hover:shadow-md 
+                            <div key={u.id} className={`flex flex-row items-center justify-between gap-4 p-4 rounded-2xl border transition-all shadow-sm hover:shadow-md min-w-[900px]
                                 ${loading === u.id ? 'opacity-50 pointer-events-none' : ''} 
                                 ${tab === 'pendientes' ? 'bg-amber-50/50 border-amber-100' : 'bg-white border-gray-100'}`}
                             >
@@ -204,17 +207,17 @@ export function AdminUsersTable({ usuarios, roles, casas }: { usuarios: Usuario[
                                 {/* 2. ZONA DE ACCIONES (El corazón del rediseño) */}
                                 {tab === 'pendientes' ? (
                                     // MODO SOLICITUDES (Se mantiene limpio)
-                                    <div className="flex flex-col sm:flex-row gap-2 flex-1 items-end sm:items-center justify-end">
-                                        <div className="flex gap-2 w-full sm:w-auto">
+                                    <div className="flex flex-row gap-2 flex-1 items-center justify-end">
+                                        <div className="flex gap-2 w-auto">
                                             <select 
-                                                className="flex-1 sm:flex-none p-2 rounded-xl border border-amber-200 bg-white text-xs font-bold text-gray-700 focus:ring-2 focus:ring-amber-500 outline-none"
+                                                className="flex-none p-2 rounded-xl border border-amber-200 bg-white text-xs font-bold text-gray-700 focus:ring-2 focus:ring-amber-500 outline-none"
                                                 onChange={(e) => setTempCasa(e.target.value)} defaultValue=""
                                             >
                                                 <option value="" disabled>🏡 Asignar Casa...</option>
                                                 {casas.map(c => <option key={c.id} value={c.id}>{getCasaLabel(c.nombre, c.genero)}</option>)}
                                             </select>
                                             <select 
-                                                className="flex-1 sm:flex-none p-2 rounded-xl border border-amber-200 bg-white text-xs font-bold text-gray-700 focus:ring-2 focus:ring-amber-500 outline-none"
+                                                className="flex-none p-2 rounded-xl border border-amber-200 bg-white text-xs font-bold text-gray-700 focus:ring-2 focus:ring-amber-500 outline-none"
                                                 onChange={(e) => setTempRol(e.target.value)} defaultValue=""
                                             >
                                                 <option value="" disabled>👮 Asignar Rol</option>
@@ -222,17 +225,17 @@ export function AdminUsersTable({ usuarios, roles, casas }: { usuarios: Usuario[
                                             </select>
                                         </div>
                                         <div className="flex gap-1">
-                                            <button onClick={() => handleEliminar(u.id, true)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"><XCircle size={20} /></button>
-                                            <button onClick={() => handleAprobar(u.id)} className="px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 shadow-sm flex items-center gap-1 transition-transform hover:scale-105"><CheckCircle2 size={14} /> Aprobar</button>
+                                            <button onClick={() => handleEliminar(u.id, true)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"><XCircle size={20} /></button>
+                                            <button onClick={() => handleAprobar(u.id)} className="px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 shadow-sm flex items-center gap-1 transition-transform hover:scale-105 min-h-[44px]"><CheckCircle2 size={14} /> Aprobar</button>
                                         </div>
                                     </div>
                                 ) : (
                                     // MODO ACTIVOS - 🔥 EL CAMBIO ESTÉTICO 🔥
-                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-end flex-1">
+                                    <div className="flex flex-row items-center gap-3 justify-end flex-1">
                                         
                                         {/* SELECTOR DE CASA (Estilo Badge Interactivo) */}
-                                        <div className="relative group w-full sm:w-auto">
-                                            <div className="flex items-center justify-between sm:justify-start gap-2 bg-white border border-gray-200 hover:border-indigo-300 hover:shadow-sm rounded-xl px-3 py-2 cursor-pointer transition-all w-full sm:w-[200px]">
+                                        <div className="relative group w-auto">
+                                            <div className="flex items-center justify-start gap-2 bg-white border border-gray-200 hover:border-indigo-300 hover:shadow-sm rounded-xl px-3 py-2 cursor-pointer transition-all w-[200px]">
                                                 <div className="flex items-center gap-2 overflow-hidden">
                                                     <div className="bg-indigo-50 p-1 rounded text-indigo-500"><MapPin size={12} /></div>
                                                     <span className="text-xs font-bold text-gray-700 truncate">
@@ -256,8 +259,8 @@ export function AdminUsersTable({ usuarios, roles, casas }: { usuarios: Usuario[
                                         </div>
 
                                         {/* SELECTOR DE ROL (Estilo Badge Interactivo) */}
-                                        <div className="relative group w-full sm:w-auto">
-                                            <div className="flex items-center justify-between sm:justify-start gap-2 bg-white border border-gray-200 hover:border-purple-300 hover:shadow-sm rounded-xl px-3 py-2 cursor-pointer transition-all w-full sm:w-[140px]">
+                                        <div className="relative group w-auto">
+                                            <div className="flex items-center justify-start gap-2 bg-white border border-gray-200 hover:border-purple-300 hover:shadow-sm rounded-xl px-3 py-2 cursor-pointer transition-all w-[140px]">
                                                 <div className="flex items-center gap-2 overflow-hidden">
                                                     <div className="bg-purple-50 p-1 rounded text-purple-500"><Briefcase size={12} /></div>
                                                     <span className="text-xs font-bold text-gray-700 truncate">
@@ -279,11 +282,11 @@ export function AdminUsersTable({ usuarios, roles, casas }: { usuarios: Usuario[
                                         <div className="hidden sm:block w-px h-8 bg-gray-200 mx-1"></div>
 
                                         {/* BOTONES DE ACCIÓN */}
-                                        <div className="flex items-center gap-1 w-full sm:w-auto justify-end">
+                                        <div className="flex items-center gap-1 w-auto justify-end">
                                             {!u.es_adjudicado && (
                                                 <button 
                                                     onClick={() => handleAdjudicar(u.id)}
-                                                    className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[10px] font-bold uppercase rounded-xl border border-indigo-200 transition-colors"
+                                                    className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[10px] font-bold uppercase rounded-xl border border-indigo-200 transition-colors min-h-[44px]"
                                                     title="Ascender a Residente Oficial"
                                                 >
                                                     Adjudicar
@@ -292,7 +295,7 @@ export function AdminUsersTable({ usuarios, roles, casas }: { usuarios: Usuario[
 
                                             <button 
                                                 onClick={() => handleEliminar(u.id, false)}
-                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors" 
+                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center" 
                                                 title="Expulsar del sistema"
                                             >
                                                 <Trash2 size={18} />

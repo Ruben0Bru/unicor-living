@@ -79,16 +79,16 @@ export default async function EditorLegislativoPage() {
       casasDisponibles = allCasas || []
 
   } else {
-      // REPRESENTANTE: Trae solo SU casa
-      const { data: myReglamento } = await supabase
-        .from('reglamento')
-        .select(`
-            *,
-            casas (id, nombre),
-            sanciones (valor_base, codigo_referencia)
-        `)
-        .eq('casa_id', perfil.casa_id)
-        .order('numero_articulo', { ascending: true })
+// REPRESENTANTE: Trae Globales + Su casa
+    const { data: myReglamento } = await supabase
+    .from('reglamento')
+    .select(`
+        *,
+        casas (id, nombre),
+        sanciones (valor_base, codigo_referencia)
+    `)
+    .or(`casa_id.eq.${perfil.casa_id},casa_id.is.null`) // Filtro de herencia
+    .order('numero_articulo', { ascending: true })
       
       articulos = (myReglamento as unknown as ArticuloReglamento[]) || []
   }
@@ -144,8 +144,9 @@ export default async function EditorLegislativoPage() {
                             <label className="block text-xs font-bold text-indigo-800 uppercase mb-1 flex items-center gap-1">
                                 <Building2 size={12} /> Asignar a Sede:
                             </label>
-                            <select name="casa_id" required defaultValue="" className="w-full p-2 bg-white rounded-lg border border-indigo-200 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
-                                <option value="" disabled>-- Seleccionar Casa --</option>
+                            <select name="casa_id" required defaultValue="GLOBAL" className="w-full p-2 bg-white rounded-lg border border-indigo-200 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                                <option value="GLOBAL">🌍 Reglamento Global (Todas las sedes)</option>
+                                <option value="" disabled>-- Reglas Específicas --</option>
                                 {casasDisponibles.map(c => (
                                     <option key={c.id} value={c.id}>
                                         {getCasaLabel(c.nombre, c.genero)}
@@ -211,10 +212,9 @@ export default async function EditorLegislativoPage() {
             )}
 
             {articulos.map((art) => {
-                const casaNombre = Array.isArray(art.casas) 
-                    ? art.casas[0]?.nombre 
-                    : (art.casas as any)?.nombre || 'Sin Sede';
-
+                const casaNombre = art.casa_id === null 
+                ? '🌍 GLOBAL' 
+                : (Array.isArray(art.casas) ? art.casas[0]?.nombre : (art.casas as any)?.nombre || 'Sin Sede');
                 return (
                     <div key={art.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 group hover:border-indigo-200 transition-colors relative">
                         

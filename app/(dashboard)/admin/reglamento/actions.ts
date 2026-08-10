@@ -40,16 +40,17 @@ export async function crearArticulo(formData: FormData) {
     const titulo = formData.get('titulo') as string
     const descripcion = formData.get('descripcion') as string
     
-    // Lógica de Casa Destino
-    let casaDestinoId = perfil.casa_id; 
+// Lógica de Casa Destino (Soporte para Reglas Globales)
+    let casaDestinoId: string | null = perfil.casa_id; 
 
     if (esAdmin) {
         const selectedCasa = formData.get('casa_id') as string
-        if (selectedCasa) {
-            casaDestinoId = selectedCasa
+        if (selectedCasa === 'GLOBAL') {
+            casaDestinoId = null; // La marcamos como universal
+        } else if (selectedCasa) {
+            casaDestinoId = selectedCasa;
         }
     }
-
     // Datos sanción
     const crearSancion = formData.get('crear_sancion') === 'on'
     const precioMulta = formData.get('precio_multa')

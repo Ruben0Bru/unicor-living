@@ -41,7 +41,7 @@ export async function signup(formData: FormData) {
 
   if (data.session) {
     revalidatePath('/', 'layout')
-    redirect('/setup') 
+    redirect('/espera') 
   }
 
   return redirect('/login?message=Revisa tu correo para confirmar')
@@ -58,9 +58,6 @@ export async function solicitarRecuperacion(formData: FormData) {
   const supabase = await createClient()
   const email = formData.get('email') as string
 
-  // 1. Buscamos la variable explícita que configuraste.
-  // 2. Si falla, buscamos la variable interna de Vercel (y le concatenamos https://).
-  // 3. Si ambas fallan (estás desarrollando en tu PC), usamos localhost.
   let origin = 
     process.env.NEXT_PUBLIC_SITE_URL || 
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')

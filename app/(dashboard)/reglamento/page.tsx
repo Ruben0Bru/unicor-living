@@ -39,7 +39,7 @@ export default async function ReglamentoPage() {
   const casaData = perfil.casas as any
   const nombreCasa = Array.isArray(casaData) ? casaData[0]?.nombre : casaData?.nombre
 
-  // 2. Traer el Reglamento
+// 2. Traer el Reglamento (HERENCIA: Globales + Locales)
   const { data: articulosRaw } = await supabase
     .from('reglamento')
     .select(`
@@ -50,9 +50,10 @@ export default async function ReglamentoPage() {
             descripcion
         )
     `)
-    .eq('casa_id', perfil.casa_id)
+    // MAGIA AQUÍ: Trae las reglas de mi casa O las que tienen casa_id en null (Globales)
+    .or(`casa_id.eq.${perfil.casa_id},casa_id.is.null`) 
     .order('numero_articulo', { ascending: true })
-
+    
   // 🛠️ FIX 2: Casteamos la respuesta a nuestro tipo 'Articulo[]'
   const articulos = articulosRaw as unknown as Articulo[]
 

@@ -119,7 +119,7 @@ export function ModalAsignacion({ isOpen, onClose, fecha, residentes, asignacion
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-md max-h-[90vh] flex flex-col rounded-3xl shadow-2xl overflow-hidden scale-100 animate-in zoom-in-95 duration-200">
+            <div className="bg-white w-[95%] md:max-w-xl lg:max-w-2xl max-h-[90vh] flex flex-col rounded-3xl shadow-2xl overflow-hidden scale-100 animate-in zoom-in-95 duration-200">
                 
                 <div className="bg-gray-900 text-white p-6 flex justify-between items-center shrink-0">
                     <div>
@@ -128,7 +128,7 @@ export function ModalAsignacion({ isOpen, onClose, fecha, residentes, asignacion
                             {fecha.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+                    <button onClick={onClose} className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white/10 rounded-full hover:bg-white/20 transition-colors">
                         <X size={20} />
                     </button>
                 </div>
@@ -199,7 +199,7 @@ export function ModalAsignacion({ isOpen, onClose, fecha, residentes, asignacion
                                                 className="w-full text-sm bg-transparent border-none p-0 focus:ring-0 font-bold text-gray-700 placeholder:text-gray-400 outline-none"
                                                 autoFocus
                                             />
-                                            <button onClick={() => borrarGeneral(tarea.id)} className="text-red-300 hover:text-red-500 p-2 transition-colors">
+                                            <button onClick={() => borrarGeneral(tarea.id)} className="text-red-300 hover:text-red-500 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors">
                                                 <Trash size={16} />
                                             </button>
                                         </div>

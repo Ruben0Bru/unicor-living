@@ -1,5 +1,5 @@
 'use server'
-
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 
@@ -40,17 +40,20 @@ export async function aprobarSolicitud(usuarioId: string, casaId: string, rolId:
 
 // ❌ RECHAZAR O EXPULSAR (ELIMINAR)
 export async function eliminarUsuario(usuarioId: string) {
-    const supabase = await verificarAdmin()
+    await verificarAdmin()
     
-    const { error } = await supabase
-        .from('perfiles')
-        .delete()
-        .eq('id', usuarioId)
+    const supabaseAdmin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(usuarioId)
 
-    if (error) throw new Error("Error al eliminar usuario")
+    if (authError) {
+        await supabaseAdmin.from('perfiles').delete().eq('id', usuarioId)
+    }
+
     revalidatePath('/admin')
 }
-
 // 🎖️ ADJUDICAR (SOLO IDA -> NO SE PUEDE REVOCAR)
 export async function adjudicarUsuario(usuarioId: string) {
     const supabase = await verificarAdmin()
