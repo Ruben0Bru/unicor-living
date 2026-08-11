@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { signout } from '@/app/login/actions'
-import { LogOut, UserCircle } from 'lucide-react'
+import { LogOut, UserCircle, Menu } from 'lucide-react'
 import { SidebarNav } from '@/components/dashboard/SideBarNav' 
 
 export default async function DashboardLayout({
@@ -42,10 +42,27 @@ export default async function DashboardLayout({
   const esAdmin = nombreRol.includes('admin') // <--- Nuevo Flag para el Sidebar
 
   return (
-    <div className="flex h-screen bg-unicor-base text-gray-800">
+    <div className="flex h-screen bg-unicor-base text-gray-800 overflow-hidden relative">
+      
+      {/* PURE CSS MOBILE TOGGLE */}
+      <input type="checkbox" id="mobile-menu" className="peer hidden" />
+      
+      {/* BOTON HAMBURGUESA MOBILE */}
+      <label 
+         htmlFor="mobile-menu" 
+         className="md:hidden absolute top-4 left-4 z-50 p-2 bg-unicor-primary text-white rounded-lg shadow-lg cursor-pointer hover:bg-unicor-secondary transition-colors"
+      >
+         <Menu size={24} />
+      </label>
+
+      {/* OVERLAY PARA CERRAR EL MENU AL TOCAR AFUERA */}
+      <label 
+         htmlFor="mobile-menu" 
+         className="md:hidden fixed inset-0 bg-black/50 z-30 hidden peer-checked:block transition-opacity"
+      ></label>
       
       {/* SIDEBAR */}
-      <aside className="w-64 bg-unicor-primary text-white flex flex-col shadow-2xl z-10">
+      <aside className="w-64 bg-unicor-primary text-white flex flex-col shadow-2xl z-40 fixed inset-y-0 left-0 transform -translate-x-full peer-checked:translate-x-0 md:relative md:translate-x-0 transition-transform duration-300">
         
         {/* Logo */}
         <div className="h-20 flex items-center px-8 border-b border-unicor-secondary/30">
@@ -107,7 +124,7 @@ export default async function DashboardLayout({
       </aside>
 
       {/* CONTENIDO PRINCIPAL */}
-      <main className="flex-1 overflow-y-auto p-8 relative">
+      <main className="flex-1 overflow-y-auto p-4 pt-16 md:p-8 md:pt-8 relative min-w-0">
         {/* Decoración de fondo Admin vs Normal */}
         <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl -z-10 transform translate-x-1/2 -translate-y-1/2
             ${esAdmin ? 'bg-slate-500/10' : 'bg-unicor-secondary/5'}

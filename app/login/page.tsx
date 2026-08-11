@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { login, signup } from './actions'
-import { UserCircle2, Lock } from 'lucide-react'
+import { UserCircle2 } from 'lucide-react'
+import { PasswordInput } from './PasswordInput'
 
 // DEFINICIÓN CORRECTA PARA NEXT.JS 15+
 export default async function LoginPage(props: {
@@ -35,11 +36,7 @@ export default async function LoginPage(props: {
             </div>
 
             {/* Password */}
-            <div className="relative group">
-              <Lock className="absolute left-3 top-3.5 text-gray-400 group-focus-within:text-unicor-primary transition-colors" size={20} />
-              <input type="password" name="password" placeholder="Contraseña" required 
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-unicor-primary focus:border-transparent outline-none transition-all" />
-            </div>
+            <PasswordInput />
             
             {/* Botones de Acción */}
             <div className="flex flex-col gap-3 mt-6">

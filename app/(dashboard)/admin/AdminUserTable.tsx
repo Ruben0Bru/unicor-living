@@ -176,7 +176,7 @@ export function AdminUsersTable({ usuarios, roles, casas }: { usuarios: Usuario[
                             >
                                 
                                 {/* 1. INFO USUARIO */}
-                                <div className="flex items-center gap-4 min-w-[280px]">
+                                <div className="flex items-center gap-4 w-full sm:w-auto sm:min-w-[280px]">
                                     <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden shrink-0 border-2 border-white shadow-sm">
                                         <img src={u.avatar_url} className="w-full h-full object-cover" />
                                     </div>
