@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { signout } from '@/app/login/actions'
-import { LogOut, UserCircle } from 'lucide-react'
+import { LogOut, UserCircle, Menu } from 'lucide-react'
 import { SidebarNav } from '@/components/dashboard/SideBarNav' 
 import { DashboardLayoutClient } from '@/components/dashboard/DashboardLayoutClient'
 
@@ -22,8 +22,7 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single()
 
-  // 🛑 1. CHECKPOINT DE SEGURIDAD (ADMISIONES)
-  // Si el usuario existe pero NO está autorizado -> A la sala de espera
+  // 1. CHECKPOINT DE SEGURIDAD (ADMISIONES)
   if (perfil && !perfil.autorizado) {
       redirect('/espera')
   }
@@ -38,13 +37,32 @@ export default async function DashboardLayout({
   const puedeVerSecretaria = nombreRol.includes('secretario') || nombreRol.includes('admin') || nombreRol.includes('representante')
   const puedeVerEstrado = nombreRol.includes('representante') || nombreRol.includes('admin')
 
-  // 👮‍♂️ Roles Especiales
+  // Roles Especiales
   const esBienestar = nombreRol.includes('bienestar')
-  const esAdmin = nombreRol.includes('admin') // <--- Nuevo Flag para el Sidebar
+  const esAdmin = nombreRol.includes('admin')
 
-  return (
-    <DashboardLayoutClient esAdmin={esAdmin} sidebar={
-      <aside className="w-64 bg-unicor-primary text-white flex flex-col shadow-2xl h-full">
+  // 2. ENCAPSULACIÓN DEL SIDEBAR (Resuelve el error ts(2304) y el conflicto de Antigravity)
+  const sidebar = (
+    <>
+      {/* PURE CSS MOBILE TOGGLE */}
+      <input type="checkbox" id="mobile-menu" className="peer hidden" />
+      
+      {/* BOTON HAMBURGUESA MOBILE */}
+      <label 
+         htmlFor="mobile-menu" 
+         className="md:hidden absolute top-4 left-4 z-50 p-2 bg-unicor-primary text-white rounded-lg shadow-lg cursor-pointer hover:bg-unicor-secondary transition-colors"
+      >
+         <Menu size={24} />
+      </label>
+
+      {/* OVERLAY PARA CERRAR EL MENU AL TOCAR AFUERA */}
+      <label 
+         htmlFor="mobile-menu" 
+         className="md:hidden fixed inset-0 bg-black/50 z-30 hidden peer-checked:block transition-opacity"
+      ></label>
+      
+      {/* SIDEBAR */}
+      <aside className="w-64 bg-unicor-primary text-white flex flex-col shadow-2xl z-40 fixed inset-y-0 left-0 transform -translate-x-full peer-checked:translate-x-0 md:relative md:translate-x-0 transition-transform duration-300 h-full">
         
         {/* Logo */}
         <div className="h-20 flex items-center px-8 border-b border-unicor-secondary/30 shrink-0">
@@ -82,7 +100,7 @@ export default async function DashboardLayout({
           </Link>
         </div>
 
-        {/* --- PASAMOS TODOS LOS PERMISOS --- */}
+        {/* PERMISOS */}
         <SidebarNav 
             esFiscal={puedeVerFiscalia} 
             esTesorero={puedeVerTesoreria} 
@@ -91,7 +109,6 @@ export default async function DashboardLayout({
             esBienestar={esBienestar}
             esAdmin={esAdmin}
         />
-        {/* ------------------------------- */}
 
         {/* Footer Sidebar */}
         <div className="p-4 border-t border-unicor-secondary/30 mt-auto shrink-0">
@@ -103,8 +120,23 @@ export default async function DashboardLayout({
           </form>
         </div>
       </aside>
-    }>
-      {children}
-    </DashboardLayoutClient>
-  )
+    </>
+  );
+
+  return (
+    <div className="flex h-screen bg-unicor-base text-gray-800 overflow-hidden relative">
+        <DashboardLayoutClient sidebar={sidebar} esAdmin={esAdmin}>
+            
+            {/* CONTENIDO PRINCIPAL */}
+            <main className="flex-1 overflow-y-auto p-4 pt-16 md:p-8 md:pt-8 relative min-w-0">
+                
+                {/* Decoración de fondo */}
+                <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl -z-10 transform translate-x-1/2 -translate-y-1/2 ${esAdmin ? 'bg-slate-500/10' : 'bg-unicor-secondary/5'}`}></div>
+                
+                {children}
+            </main>
+
+        </DashboardLayoutClient>
+    </div>
+  );
 }
