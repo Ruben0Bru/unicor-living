@@ -28,9 +28,9 @@ export function CalendarioSecretario({
   const [fechaActual, setFechaActual] = useState(new Date());
   const [diaSeleccionado, setDiaSeleccionado] = useState<Date | null>(null);
 
-  const [modalAbierto, setModalAbierto] = useState(false); // Para Secretario
+  const [modalAbierto, setModalAbierto] = useState(false);
   const [modalVerificacionAbierto, setModalVerificacionAbierto] =
-    useState(false); // Para Representante/Residente
+    useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -74,8 +74,6 @@ export function CalendarioSecretario({
 
   const handleClickDia = (dia: Date) => {
     setDiaSeleccionado(dia);
-
-    // Ruteo de modales según permisos
     if (esSecretario) {
       setModalAbierto(true);
     } else {
@@ -108,7 +106,7 @@ export function CalendarioSecretario({
         return (
           <div
             className={`p-1 rounded-full ${asignado ? "bg-cyan-100 text-cyan-700" : "bg-gray-100 text-gray-300"}`}
-            title="Baño"
+            title="Baños"
           >
             <Bath size={size} />
           </div>
@@ -185,7 +183,12 @@ export function CalendarioSecretario({
 
               const tieneCocina = tareas.some((t) => t.tipo_aseo === "Cocina");
               const tieneCasa = tareas.some((t) => t.tipo_aseo === "Casa");
-              const tieneBano = tareas.some((t) => t.tipo_aseo === "Baño");
+
+              // 👇 Esta línea ahora detecta si hay CUALQUIER tipo de baño asignado
+              const tieneBano = tareas.some((t) =>
+                t.tipo_aseo.includes("Baño"),
+              );
+
               const tieneBasura = tareas.some((t) => t.tipo_aseo === "Basura");
 
               return (
@@ -218,7 +221,6 @@ export function CalendarioSecretario({
             })}
       </div>
 
-      {/* MODAL PARA SECRETARIO: Editable y Destructivo */}
       {isMounted && modalAbierto && diaSeleccionado && (
         <ModalAsignacion
           isOpen={modalAbierto}
@@ -229,7 +231,6 @@ export function CalendarioSecretario({
         />
       )}
 
-      {/* MODAL PARA REPRESENTANTE Y RESIDENTE: Visor y Verificador */}
       {isMounted && modalVerificacionAbierto && diaSeleccionado && (
         <ModalVerificacion
           isOpen={modalVerificacionAbierto}
