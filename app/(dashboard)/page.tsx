@@ -48,11 +48,14 @@ export default async function DashboardPage() {
   if (nombreRol.includes("bienestar")) {
     redirect("/bienestar");
   }
-
   // --- ZONA HORARIA ---
-  const fechaServer = new Date();
-  fechaServer.setHours(fechaServer.getHours() - 5);
-  const hoy = fechaServer.toISOString().split("T")[0];
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const hoy = formatter.format(new Date());
 
   // --- ACTIONS ---
   async function marcarTareaCompletada(asignacionId: string) {

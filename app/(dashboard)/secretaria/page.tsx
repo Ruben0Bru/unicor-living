@@ -51,12 +51,13 @@ export default async function SecretariaPage() {
         )}
       </div>
 
-      {/* 3. Le pasamos los permisos al calendario para que sepa cómo reaccionar */}
+      {/* 3. Le pasamos los permisos y el ID al calendario */}
       <CalendarioSecretario
         residentes={residentes}
         asignacionesIniciales={asignaciones}
         esSecretario={esSecretario}
         esRepresentante={esRepresentante}
+        miPerfilId={user.id}
       />
     </div>
   );

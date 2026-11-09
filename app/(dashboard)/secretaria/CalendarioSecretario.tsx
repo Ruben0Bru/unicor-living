@@ -9,6 +9,7 @@ import {
   Trash2,
   Bath,
   Plus,
+  Snowflake,
 } from "lucide-react";
 import { ModalAsignacion } from "./ModalAsignacion";
 import { ModalVerificacion } from "./ModalVerificacion";
@@ -18,11 +19,13 @@ export function CalendarioSecretario({
   asignacionesIniciales,
   esSecretario,
   esRepresentante,
+  miPerfilId,
 }: {
   residentes: any[];
   asignacionesIniciales: any[];
   esSecretario: boolean;
   esRepresentante: boolean;
+  miPerfilId: string;
 }) {
   const [isMounted, setIsMounted] = useState(false);
   const [fechaActual, setFechaActual] = useState(new Date());
@@ -111,6 +114,16 @@ export function CalendarioSecretario({
             <Bath size={size} />
           </div>
         );
+      // 👇 Añadido el caso para la Nevera
+      case "Nevera":
+        return (
+          <div
+            className={`p-1 rounded-full ${asignado ? "bg-indigo-100 text-indigo-700" : "bg-gray-100 text-gray-300"}`}
+            title="Neveras"
+          >
+            <Snowflake size={size} />
+          </div>
+        );
       case "Basura":
         return (
           <div
@@ -183,12 +196,13 @@ export function CalendarioSecretario({
 
               const tieneCocina = tareas.some((t) => t.tipo_aseo === "Cocina");
               const tieneCasa = tareas.some((t) => t.tipo_aseo === "Casa");
-
-              // 👇 Esta línea ahora detecta si hay CUALQUIER tipo de baño asignado
               const tieneBano = tareas.some((t) =>
                 t.tipo_aseo.includes("Baño"),
               );
-
+              // 👇 Añadida la detección de la nevera
+              const tieneNevera = tareas.some((t) =>
+                t.tipo_aseo.includes("Nevera"),
+              );
               const tieneBasura = tareas.some((t) => t.tipo_aseo === "Basura");
 
               return (
@@ -207,6 +221,7 @@ export function CalendarioSecretario({
                     {renderIconoTarea("Cocina", tieneCocina)}
                     {renderIconoTarea("Casa", tieneCasa)}
                     {renderIconoTarea("Baño", tieneBano)}
+                    {renderIconoTarea("Nevera", tieneNevera)}
                     {renderIconoTarea("Basura", tieneBasura)}
                   </div>
 
@@ -239,6 +254,7 @@ export function CalendarioSecretario({
           asignacionesDelDia={getAsignacionesDia(diaSeleccionado)}
           esRepresentante={esRepresentante}
           residentes={residentes}
+          miPerfilId={miPerfilId}
         />
       )}
     </div>
