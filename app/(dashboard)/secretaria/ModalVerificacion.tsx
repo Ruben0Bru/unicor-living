@@ -59,6 +59,18 @@ export function ModalVerificacion({
                           src={residente.avatar_url}
                           alt={residente.apodo}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              const fallback = document.createElement("span");
+                              fallback.className =
+                                "text-purple-700 font-black text-lg";
+                              fallback.innerText =
+                                residente?.apodo?.charAt(0) || "?";
+                              parent.appendChild(fallback);
+                            }
+                          }}
                         />
                       ) : (
                         <span className="text-purple-700 font-black text-lg">

@@ -96,7 +96,15 @@ export default async function DashboardPage() {
     .eq("fecha_asignada", hoy);
 
   // Lógica de Tareas
-  const TIPOS_COMUNES = ["Cocina", "Casa", "Baño 1", "Baño 2", "Basura"];
+  const TIPOS_COMUNES = [
+    "Cocina",
+    "Casa",
+    "Baño 1",
+    "Baño 2",
+    "Nevera 1",
+    "Nevera 2",
+    "Basura",
+  ];
   const misionesDiarias =
     asignacionesHoy?.filter((t) => TIPOS_COMUNES.includes(t.tipo_aseo)) || [];
   const pendientesDiarios = misionesDiarias.filter((t) => !t.realizado);

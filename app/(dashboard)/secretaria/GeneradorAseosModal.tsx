@@ -35,6 +35,8 @@ export function GeneradorAseosModal({
     casa: [] as string[],
     bano1: [] as string[],
     bano2: [] as string[],
+    nevera1: [] as string[],
+    nevera2: [] as string[],
     cocina: [] as string[],
     basura: [] as string[],
   });
@@ -50,8 +52,10 @@ export function GeneradorAseosModal({
         casa: [...todosIds],
         bano1: [...todosIds],
         bano2: [...todosIds],
-        cocina: [...adjudicadosIds], // Vienen marcados por defecto, pero se pueden quitar
-        basura: [...adjudicadosIds], // Vienen marcados por defecto, pero se pueden quitar
+        nevera1: [...adjudicadosIds],
+        nevera2: [...adjudicadosIds],
+        cocina: [...adjudicadosIds],
+        basura: [...adjudicadosIds],
       });
       setError("");
     }
@@ -223,6 +227,8 @@ export function GeneradorAseosModal({
                 <ListaCheck titulo="Baño 2" zona="bano2" />
                 <ListaCheck titulo="Cocina" zona="cocina" />
                 <ListaCheck titulo="Basura" zona="basura" />
+                <ListaCheck titulo="Nevera 1" zona="nevera1" />
+                <ListaCheck titulo="Nevera 2" zona="nevera2" />
               </div>
             </div>
 
