@@ -35,9 +35,11 @@ export async function obtenerDatosPlanificacion() {
   // D. Traer residentes SOLO de mi casa
   const { data: residentes } = await supabase
     .from("perfiles")
-    .select("id, apodo, avatar_url, es_adjudicado, equipo_aseo")
+    .select(
+      "id, nombre:nombre_completo, avatar_url, es_adjudicado, equipo_aseo",
+    )
     .eq("casa_id", casaId)
-    .order("apodo");
+    .order("nombre_completo");
 
   return { residentes: residentes || [], asignaciones: asignaciones || [] };
 }

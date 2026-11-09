@@ -13,7 +13,7 @@ import { generarAseosMensuales } from "./actions";
 
 type Residente = {
   id: string;
-  apodo: string;
+  nombre: string;
   es_adjudicado: boolean;
 };
 
@@ -126,7 +126,7 @@ export function GeneradorAseosModal({
               <span
                 className={`text-sm truncate ${isChecked ? "text-gray-800 font-bold" : "text-gray-500"}`}
               >
-                {r.apodo}
+                {r.nombre}
               </span>
             </button>
           );

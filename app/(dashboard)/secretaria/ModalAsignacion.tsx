@@ -21,7 +21,7 @@ import { guardarAsignacionesDia } from "./actions";
 // ==========================================
 type Residente = {
   id: string;
-  apodo: string;
+  nombre: string;
   es_adjudicado: boolean;
   equipo_aseo: string;
 };
@@ -120,7 +120,7 @@ function FormularioFijos({
                 <option value="">-- Sin Asignar --</option>
                 {candidatos.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.apodo}
+                    {r.nombre}
                   </option>
                 ))}
               </select>
@@ -201,7 +201,7 @@ function FormularioGenerales({
                   <option value="">-- Asignar a... --</option>
                   {candidatos.map((r: Residente) => (
                     <option key={r.id} value={r.id}>
-                      {r.apodo}
+                      {r.nombre}
                     </option>
                   ))}
                 </select>

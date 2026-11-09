@@ -57,7 +57,7 @@ export function ModalVerificacion({
                       {residente?.avatar_url ? (
                         <img
                           src={residente.avatar_url}
-                          alt={residente.apodo}
+                          alt={residente.nombre}
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             e.currentTarget.style.display = "none";
@@ -67,14 +67,14 @@ export function ModalVerificacion({
                               fallback.className =
                                 "text-purple-700 font-black text-lg";
                               fallback.innerText =
-                                residente?.apodo?.charAt(0) || "?";
+                                residente?.nombre?.charAt(0) || "?";
                               parent.appendChild(fallback);
                             }
                           }}
                         />
                       ) : (
                         <span className="text-purple-700 font-black text-lg">
-                          {residente?.apodo?.charAt(0) || "?"}
+                          {residente?.nombre?.charAt(0) || "?"}
                         </span>
                       )}
                     </div>
@@ -85,7 +85,7 @@ export function ModalVerificacion({
                       <p className="text-xs text-gray-500 font-bold mt-0.5">
                         Responsable:{" "}
                         <span className="text-purple-600">
-                          {residente?.apodo || "Desconocido"}
+                          {residente?.nombre || "Desconocido"}
                         </span>
                       </p>
                     </div>
