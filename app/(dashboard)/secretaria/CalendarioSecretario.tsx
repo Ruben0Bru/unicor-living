@@ -139,7 +139,8 @@ export function CalendarioSecretario({
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl border border-gray-100 flex flex-col h-[800px] w-full overflow-hidden">
+    <div className="bg-white rounded-3xl shadow-xl border border-gray-100 flex flex-col min-h-[600px] h-auto w-full overflow-hidden">
+      {" "}
       <div className="p-6 flex justify-between items-center border-b border-gray-100">
         <h2 className="text-2xl font-black text-gray-800 capitalize flex items-center gap-2">
           {isMounted
@@ -166,7 +167,6 @@ export function CalendarioSecretario({
           </button>
         </div>
       </div>
-
       <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
         {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((d) => (
           <div
@@ -177,7 +177,6 @@ export function CalendarioSecretario({
           </div>
         ))}
       </div>
-
       <div className="grid grid-cols-7 flex-1 auto-rows-fr bg-gray-200 gap-px border-b border-gray-200">
         {!isMounted
           ? Array.from({ length: 35 }).map((_, i) => (
@@ -209,7 +208,7 @@ export function CalendarioSecretario({
                 <div
                   key={dia.toISOString()}
                   onClick={() => handleClickDia(dia)}
-                  className={`bg-white hover:bg-purple-50 transition-colors cursor-pointer p-1 md:p-4 flex flex-col gap-1 group relative ${esHoy ? "bg-purple-50/30" : ""}`}
+                  className={`bg-white hover:bg-purple-50 transition-colors cursor-pointer p-2 md:p-4 flex flex-col gap-1 md:gap-2 group relative min-h-[90px] md:min-h-[120px] ${esHoy ? "bg-purple-50/30" : ""}`}
                 >
                   <span
                     className={`text-sm font-bold w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full mb-1 ${esHoy ? "bg-purple-600 text-white shadow-md" : "text-gray-700 group-hover:bg-white"}`}
@@ -235,7 +234,6 @@ export function CalendarioSecretario({
               );
             })}
       </div>
-
       {isMounted && modalAbierto && diaSeleccionado && (
         <ModalAsignacion
           isOpen={modalAbierto}
@@ -245,7 +243,6 @@ export function CalendarioSecretario({
           asignacionesDelDia={getAsignacionesDia(diaSeleccionado)}
         />
       )}
-
       {isMounted && modalVerificacionAbierto && diaSeleccionado && (
         <ModalVerificacion
           isOpen={modalVerificacionAbierto}
