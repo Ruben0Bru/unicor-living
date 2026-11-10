@@ -282,27 +282,50 @@ export function ModalAsignacion({
       const payloadFijas = Object.entries(seleccion)
         .map(([tipo, residenteId]) => {
           if (!residenteId) return null;
+
+          // Buscamos si ya existía para NO borrar firmas ni progreso
+          const existente = asignacionesDelDia.find(
+            (a: any) => a.tipo_aseo === tipo,
+          );
+
           return {
+            id: existente?.id || null, // Enviamos el ID real, o null si es nueva
             residente_id: residenteId,
             tipo_aseo: tipo,
             descripcion: `Aseo de ${TIPOS_FIJOS.find((t) => t.id === tipo)?.label || tipo}`,
             fecha_asignada: fechaIso,
             fecha_limite: fechaIso,
-            realizado: false,
+            realizado: existente?.realizado || false,
+            verificado: existente?.verificado || false,
+            verificado_por: existente?.verificado_por || null,
+            testigo_id: existente?.testigo_id || null,
+            observaciones_fiscal: existente?.observaciones_fiscal || null,
           };
         })
         .filter(Boolean);
 
       const payloadGenerales = tareasGenerales
         .filter((t) => t.nombre.trim() && t.residente_id)
-        .map((tarea) => ({
-          residente_id: tarea.residente_id,
-          tipo_aseo: tarea.nombre,
-          descripcion: "Aseo Especial/General",
-          fecha_asignada: fechaIso,
-          fecha_limite: tarea.limite,
-          realizado: false,
-        }));
+        .map((tarea) => {
+          const esNueva = tarea.id.includes(".");
+          const existente = esNueva
+            ? null
+            : asignacionesDelDia.find((a: any) => a.id === tarea.id);
+
+          return {
+            id: esNueva ? null : tarea.id,
+            residente_id: tarea.residente_id,
+            tipo_aseo: tarea.nombre,
+            descripcion: "Aseo Especial/General",
+            fecha_asignada: fechaIso,
+            fecha_limite: tarea.limite,
+            realizado: existente?.realizado || false,
+            verificado: existente?.verificado || false,
+            verificado_por: existente?.verificado_por || null,
+            testigo_id: existente?.testigo_id || null,
+            observaciones_fiscal: existente?.observaciones_fiscal || null,
+          };
+        });
 
       await guardarAsignacionesDia(fechaIso, [
         ...payloadFijas,

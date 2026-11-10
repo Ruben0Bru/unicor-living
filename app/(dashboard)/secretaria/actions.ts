@@ -62,34 +62,55 @@ export async function guardarAsignacionesDia(
   const casaId = miPerfil?.casa_id;
   if (!casaId) throw new Error("No tienes casa asignada");
 
-  // A. Borrar
-  await supabase
+  // 1. Obtener las tareas que ya existen hoy en la BD
+  const { data: actuales } = await supabase
     .from("asignaciones")
-    .delete()
+    .select("id")
     .eq("fecha_asignada", fechaIso)
     .eq("casa_id", casaId);
+  const idsActuales = actuales?.map((a) => a.id) || [];
 
-  // B. Insertar
-  if (nuevasAsignaciones.length > 0) {
-    const asignacionesConDatosCompletos = nuevasAsignaciones.map((a) => ({
-      ...a,
-      casa_id: casaId,
-      // 🛑 CAMBIO CLAVE: Usamos la fecha_limite que viene del frontend,
-      // si no viene (tareas viejas), usamos fechaIso por defecto.
-      fecha_limite: a.fecha_limite || fechaIso,
-      verificado_por: null,
-      observaciones_fiscal: null,
-    }));
+  // 2. Separar las tareas
+  const tareasExistentes: any[] = [];
+  const tareasNuevas: any[] = [];
+  const idsQueSeQuedan: string[] = [];
 
+  for (const tarea of nuevasAsignaciones) {
+    if (tarea.id !== null) {
+      // Si tiene ID, ya existía. La guardamos para actualizarla.
+      tareasExistentes.push({ ...tarea, casa_id: casaId });
+      idsQueSeQuedan.push(tarea.id);
+    } else {
+      // Si el id es null, es NUEVA.
+      // Extraemos todo menos el 'id' para que Supabase le asigne su UUID automáticamente.
+      const { id, ...tareaLimpia } = tarea;
+      tareasNuevas.push({ ...tareaLimpia, casa_id: casaId });
+    }
+  }
+  // 3. Borrar solo las tareas que el secretario desasignó en el modal
+  const idsBorrados = idsActuales.filter((id) => !idsQueSeQuedan.includes(id));
+  if (idsBorrados.length > 0) {
+    await supabase.from("asignaciones").delete().in("id", idsBorrados);
+  }
+
+  // 4. Actualizar las tareas que se mantienen (para no perder el progreso de los residentes)
+  if (tareasExistentes.length > 0) {
     const { error } = await supabase
       .from("asignaciones")
-      .insert(asignacionesConDatosCompletos);
-    if (error) throw new Error(error.message);
+      .upsert(tareasExistentes);
+    if (error) throw new Error("Error al actualizar: " + error.message);
+  }
+
+  // 5. Insertar las tareas nuevas
+  if (tareasNuevas.length > 0) {
+    const { error } = await supabase.from("asignaciones").insert(tareasNuevas);
+    if (error) throw new Error("Error al insertar: " + error.message);
   }
 
   revalidatePath("/secretaria");
   revalidatePath("/");
 }
+
 //Motor de generación masiva
 export async function generarAseosMensuales(payload: GeneradorAseosPayload) {
   const supabase = await createClient();
