@@ -26,3 +26,22 @@ export async function firmarAseoComoTestigo(asignacionId: string) {
   revalidatePath("/fiscalia");
   revalidatePath("/");
 }
+
+export async function marcarTareaCompletada(asignacionId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("No autenticado");
+
+  const { error } = await supabase
+    .from("asignaciones")
+    .update({ realizado: true })
+    .eq("id", asignacionId)
+    .eq("residente_id", user.id); // Seguridad extra
+
+  if (error) throw new Error("Error al marcar la tarea");
+
+  revalidatePath("/");
+}
