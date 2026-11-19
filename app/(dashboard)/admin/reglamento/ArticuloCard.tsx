@@ -7,7 +7,7 @@ import {
   eliminarArticulo,
   editarSancion,
   eliminarSancion,
-} from "../actions";
+} from "./actions";
 import { BotonAgregarSancion } from "./BotonAgregarSancion";
 
 type Sancion = {
