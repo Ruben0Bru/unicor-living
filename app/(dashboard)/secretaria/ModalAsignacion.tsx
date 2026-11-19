@@ -19,6 +19,8 @@ import { guardarAsignacionesDia } from "./actions";
 // ==========================================
 // 1. TIPOS Y CONSTANTES AISLADAS
 // ==========================================
+const TODOS_RESIDENTES = "TODOS";
+
 type Residente = {
   id: string;
   nombre: string;
@@ -27,10 +29,12 @@ type Residente = {
 };
 
 type TareaGeneral = {
-  id: string;
+  tempId: string;
+  dbId: string | null; // ID real si es individual y ya existía
+  nombreOriginal: string | null; // Para rastrear progreso si se renombra
   nombre: string;
   limite: string;
-  residente_id: string;
+  residente_id: string; // Puede ser "TODOS" o un UUID de residente
 };
 
 const TIPOS_FIJOS = [
@@ -142,14 +146,23 @@ function FormularioGenerales({
   onDelete,
   candidatos,
   fechaIso,
-}: any) {
+}: {
+  tareas: TareaGeneral[];
+  onAdd: () => void;
+  onUpdate: (tempId: string, campo: keyof TareaGeneral, valor: string) => void;
+  onDelete: (tempId: string) => void;
+  candidatos: Residente[];
+  fechaIso: string;
+}) {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
         <h4 className="font-bold text-gray-700 flex items-center gap-2">
-          <Users size={18} className="text-purple-600" /> Aseos Generales
+          <Users size={18} className="text-purple-600" /> Aseos Generales /
+          Especiales
         </h4>
         <button
+          type="button"
           onClick={onAdd}
           className="text-xs bg-purple-50 text-purple-600 px-3 py-1.5 rounded-lg font-bold hover:bg-purple-100 transition-colors flex items-center gap-1"
         >
@@ -165,9 +178,9 @@ function FormularioGenerales({
         </div>
       ) : (
         <div className="space-y-3">
-          {tareas.map((tarea: TareaGeneral) => (
+          {tareas.map((tarea) => (
             <div
-              key={tarea.id}
+              key={tarea.tempId}
               className="bg-purple-50/50 p-3 rounded-xl border border-purple-100 flex flex-col gap-2 animate-in slide-in-from-left-2"
             >
               <div className="flex items-center gap-2">
@@ -176,14 +189,17 @@ function FormularioGenerales({
                 </div>
                 <input
                   type="text"
-                  placeholder="Descripción (Ej: Aseo de Patio)"
+                  placeholder="Descripción (Ej: Aseo de Gavetas / Nevera)"
                   value={tarea.nombre}
-                  onChange={(e) => onUpdate(tarea.id, "nombre", e.target.value)}
+                  onChange={(e) =>
+                    onUpdate(tarea.tempId, "nombre", e.target.value)
+                  }
                   className="w-full text-sm bg-transparent border-none p-0 focus:ring-0 font-bold text-gray-700 placeholder:text-gray-400 outline-none"
                   autoFocus
                 />
                 <button
-                  onClick={() => onDelete(tarea.id)}
+                  type="button"
+                  onClick={() => onDelete(tarea.tempId)}
                   className="text-red-300 hover:text-red-500 p-2 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors"
                 >
                   <Trash size={16} />
@@ -194,12 +210,17 @@ function FormularioGenerales({
                 <select
                   value={tarea.residente_id}
                   onChange={(e) =>
-                    onUpdate(tarea.id, "residente_id", e.target.value)
+                    onUpdate(tarea.tempId, "residente_id", e.target.value)
                   }
                   className="w-full text-xs font-bold bg-white border border-purple-200 text-purple-700 rounded-lg px-2 py-1.5 outline-none focus:border-purple-500"
                 >
-                  <option value="">-- Asignar a... --</option>
-                  {candidatos.map((r: Residente) => (
+                  <option value={TODOS_RESIDENTES}>
+                    👥 Todos los residentes ({candidatos.length})
+                  </option>
+                  <option value="" disabled>
+                    -- O asignar a un residente específico --
+                  </option>
+                  {candidatos.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.nombre}
                     </option>
@@ -215,7 +236,9 @@ function FormularioGenerales({
                   type="date"
                   value={tarea.limite}
                   min={fechaIso}
-                  onChange={(e) => onUpdate(tarea.id, "limite", e.target.value)}
+                  onChange={(e) =>
+                    onUpdate(tarea.tempId, "limite", e.target.value)
+                  }
                   className="bg-white border border-purple-200 text-purple-700 text-xs rounded-lg px-2 py-1 outline-none focus:border-purple-500"
                 />
               </div>
@@ -253,26 +276,47 @@ export function ModalAsignacion({
     return inicial;
   });
 
-  // Estado Tareas Generales
+  // Estado Tareas Generales (agrupando automáticamente las que son para todos)
   const [tareasGenerales, setTareasGenerales] = useState<TareaGeneral[]>(() => {
-    return asignacionesDelDia
-      .filter((a: any) => !TIPOS_FIJOS.find((t) => t.id === a.tipo_aseo))
-      .map((a: any) => ({
-        id: Math.random().toString(),
-        nombre: a.tipo_aseo,
-        limite: a.fecha_limite || fechaIso,
-        residente_id: a.residente_id || "",
-      }));
+    const extras = asignacionesDelDia.filter(
+      (a: any) => !TIPOS_FIJOS.find((t) => t.id === a.tipo_aseo),
+    );
+
+    const agrupadas = new Map<string, any[]>();
+    for (const a of extras) {
+      const lista = agrupadas.get(a.tipo_aseo) || [];
+      lista.push(a);
+      agrupadas.set(a.tipo_aseo, lista);
+    }
+
+    const resultado: TareaGeneral[] = [];
+    agrupadas.forEach((items, tipoAseo) => {
+      const esParaTodos = items.length > 1;
+      const primero = items[0];
+
+      resultado.push({
+        tempId: esParaTodos ? `grupo-${tipoAseo}` : primero.id,
+        dbId: esParaTodos ? null : primero.id,
+        nombreOriginal: tipoAseo,
+        nombre: tipoAseo,
+        limite: primero.fecha_limite || fechaIso,
+        residente_id: esParaTodos
+          ? TODOS_RESIDENTES
+          : primero.residente_id || "",
+      });
+    });
+
+    return resultado;
   });
 
   // Operaciones
   const updateGeneral = (
-    id: string,
+    tempId: string,
     campo: keyof TareaGeneral,
     valor: string,
   ) => {
     setTareasGenerales((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, [campo]: valor } : t)),
+      prev.map((t) => (t.tempId === tempId ? { ...t, [campo]: valor } : t)),
     );
   };
 
@@ -283,13 +327,12 @@ export function ModalAsignacion({
         .map(([tipo, residenteId]) => {
           if (!residenteId) return null;
 
-          // Buscamos si ya existía para NO borrar firmas ni progreso
           const existente = asignacionesDelDia.find(
             (a: any) => a.tipo_aseo === tipo,
           );
 
           return {
-            id: existente?.id || null, // Enviamos el ID real, o null si es nueva
+            id: existente?.id || null,
             residente_id: residenteId,
             tipo_aseo: tipo,
             descripcion: `Aseo de ${TIPOS_FIJOS.find((t) => t.id === tipo)?.label || tipo}`,
@@ -304,27 +347,59 @@ export function ModalAsignacion({
         })
         .filter(Boolean);
 
+      // Expandimos las tareas generales: si es "TODOS", creamos 1 registro por residente
       const payloadGenerales = tareasGenerales
         .filter((t) => t.nombre.trim() && t.residente_id)
-        .map((tarea) => {
-          const esNueva = tarea.id.includes(".");
-          const existente = esNueva
-            ? null
-            : asignacionesDelDia.find((a: any) => a.id === tarea.id);
+        .flatMap((tarea) => {
+          const nombreBusqueda = tarea.nombreOriginal || tarea.nombre;
 
-          return {
-            id: esNueva ? null : tarea.id,
-            residente_id: tarea.residente_id,
-            tipo_aseo: tarea.nombre,
-            descripcion: "Aseo Especial/General",
-            fecha_asignada: fechaIso,
-            fecha_limite: tarea.limite,
-            realizado: existente?.realizado || false,
-            verificado: existente?.verificado || false,
-            verificado_por: existente?.verificado_por || null,
-            testigo_id: existente?.testigo_id || null,
-            observaciones_fiscal: existente?.observaciones_fiscal || null,
-          };
+          if (tarea.residente_id === TODOS_RESIDENTES) {
+            return residentes.map((r: Residente) => {
+              const existente = asignacionesDelDia.find(
+                (a: any) =>
+                  a.tipo_aseo === nombreBusqueda && a.residente_id === r.id,
+              );
+
+              return {
+                id: existente?.id || null,
+                residente_id: r.id,
+                tipo_aseo: tarea.nombre.trim(),
+                descripcion: "Aseo Especial/General (Todos)",
+                fecha_asignada: fechaIso,
+                fecha_limite: tarea.limite,
+                realizado: existente?.realizado || false,
+                verificado: existente?.verificado || false,
+                verificado_por: existente?.verificado_por || null,
+                testigo_id: existente?.testigo_id || null,
+                observaciones_fiscal: existente?.observaciones_fiscal || null,
+              };
+            });
+          }
+
+          // Caso individual
+          const existente = tarea.dbId
+            ? asignacionesDelDia.find((a: any) => a.id === tarea.dbId)
+            : asignacionesDelDia.find(
+                (a: any) =>
+                  a.tipo_aseo === nombreBusqueda &&
+                  a.residente_id === tarea.residente_id,
+              );
+
+          return [
+            {
+              id: existente?.id || null,
+              residente_id: tarea.residente_id,
+              tipo_aseo: tarea.nombre.trim(),
+              descripcion: "Aseo Especial/General",
+              fecha_asignada: fechaIso,
+              fecha_limite: tarea.limite,
+              realizado: existente?.realizado || false,
+              verificado: existente?.verificado || false,
+              verificado_por: existente?.verificado_por || null,
+              testigo_id: existente?.testigo_id || null,
+              observaciones_fiscal: existente?.observaciones_fiscal || null,
+            },
+          ];
         });
 
       await guardarAsignacionesDia(fechaIso, [
@@ -362,7 +437,7 @@ export function ModalAsignacion({
           </button>
         </div>
 
-        {/* CUERPO CENTRAL (Donde inyectamos los componentes limpios) */}
+        {/* CUERPO CENTRAL */}
         <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
           <FormularioFijos
             seleccion={seleccion}
@@ -378,16 +453,18 @@ export function ModalAsignacion({
               setTareasGenerales((p) => [
                 ...p,
                 {
-                  id: Math.random().toString(),
+                  tempId: `nueva-${Date.now()}-${Math.random()}`,
+                  dbId: null,
+                  nombreOriginal: null,
                   nombre: "",
                   limite: fechaIso,
-                  residente_id: "",
+                  residente_id: TODOS_RESIDENTES,
                 },
               ])
             }
             onUpdate={updateGeneral}
-            onDelete={(id: string) =>
-              setTareasGenerales((p) => p.filter((t) => t.id !== id))
+            onDelete={(tempId: string) =>
+              setTareasGenerales((p) => p.filter((t) => t.tempId !== tempId))
             }
             candidatos={residentes}
             fechaIso={fechaIso}
@@ -405,10 +482,10 @@ export function ModalAsignacion({
           <button
             onClick={handleSave}
             disabled={loading}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-purple-200 transition-all flex items-center gap-2"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-purple-200 transition-all flex items-center gap-2 disabled:opacity-60"
           >
             {loading ? (
-              "..."
+              "Guardando..."
             ) : (
               <>
                 <Save size={20} /> Guardar Todo

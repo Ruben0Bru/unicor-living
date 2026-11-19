@@ -7,9 +7,20 @@ import {
   PenTool,
   AlertCircle,
   CheckCircle2,
+  Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { firmarAseoComoTestigo } from "@/app/(dashboard)/actions";
+
+const TIPOS_FIJOS = new Set([
+  "Cocina",
+  "Casa",
+  "Baño 1",
+  "Baño 2",
+  "Nevera 1",
+  "Nevera 2",
+  "Basura",
+]);
 
 export function ModalVerificacion({
   isOpen,
@@ -20,6 +31,42 @@ export function ModalVerificacion({
   miPerfilId,
 }: any) {
   const [firmandoId, setFirmandoId] = useState<string | null>(null);
+
+  // Agrupamos únicamente los aseos especiales/generales que aplican a todos
+  const tareasRenderizables = useMemo(() => {
+    const individuales: any[] = [];
+    const gruposEspeciales = new Map<string, any[]>();
+
+    for (const a of asignacionesDelDia || []) {
+      if (TIPOS_FIJOS.has(a.tipo_aseo)) {
+        individuales.push({ ...a, esGrupal: false });
+      } else {
+        const lista = gruposEspeciales.get(a.tipo_aseo) || [];
+        lista.push(a);
+        gruposEspeciales.set(a.tipo_aseo, lista);
+      }
+    }
+
+    const especiales: any[] = [];
+    gruposEspeciales.forEach((items, tipoAseo) => {
+      const esParaTodos =
+        items.length > 1 ||
+        items[0].descripcion === "Aseo Especial/General (Todos)";
+
+      if (esParaTodos) {
+        especiales.push({
+          ...items[0],
+          id: `grupo-${tipoAseo}`,
+          esGrupal: true,
+          totalResidentes: items.length,
+        });
+      } else {
+        especiales.push({ ...items[0], esGrupal: false });
+      }
+    });
+
+    return [...individuales, ...especiales];
+  }, [asignacionesDelDia]);
 
   const handleFirmar = async (asignacionId: string) => {
     setFirmandoId(asignacionId);
@@ -60,7 +107,7 @@ export function ModalVerificacion({
 
         {/* LISTA DE TAREAS */}
         <div className="p-6 max-h-[70vh] overflow-y-auto space-y-4 custom-scrollbar">
-          {asignacionesDelDia.length === 0 ? (
+          {tareasRenderizables.length === 0 ? (
             <div className="text-center py-8">
               <span className="text-4xl block mb-2">✨</span>
               <p className="text-gray-500 font-medium">
@@ -68,12 +115,40 @@ export function ModalVerificacion({
               </p>
             </div>
           ) : (
-            asignacionesDelDia.map((a: any) => {
+            tareasRenderizables.map((a: any) => {
+              // 👇 CARD ÚNICA PARA ASEO GENERAL / ESPECIAL (TODOS)
+              if (a.esGrupal) {
+                return (
+                  <div
+                    key={a.id}
+                    className="border border-purple-200 rounded-2xl p-4 bg-purple-50/50 flex items-start gap-3 shadow-sm"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 border-2 border-purple-200 shadow-sm mt-1">
+                      <Users size={22} />
+                    </div>
+                    <div className="flex-1 flex flex-col justify-center">
+                      <p className="font-black text-gray-800 leading-tight mb-1">
+                        {a.tipo_aseo}
+                      </p>
+                      <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase flex items-center gap-1 w-fit">
+                        Aseo General
+                      </span>
+                      <p className="text-xs text-gray-500 font-bold mt-1.5">
+                        Responsable:{" "}
+                        <span className="text-purple-700">
+                          Todos los residentes
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+
+              // 👇 CARD INDIVIDUAL (Sin cambios)
               const residente = residentes?.find(
                 (r: any) => r.id === a.residente_id,
               );
 
-              // 👇 LÓGICA DE ESTADOS VISUALES
               let BadgeEstado = null;
               if (a.verificado) {
                 BadgeEstado = (

@@ -10,6 +10,7 @@ import {
   Bath,
   Plus,
   Snowflake,
+  Sparkles,
 } from "lucide-react";
 import { ModalAsignacion } from "./ModalAsignacion";
 import { ModalVerificacion } from "./ModalVerificacion";
