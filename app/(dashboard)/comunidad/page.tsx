@@ -1,57 +1,59 @@
-import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
-import { ProfileCard } from '@/components/profile/ProfileCard'
-import { ComunidadFilters } from '@/components/dashboard/ComunidadFilters'
-import { Users } from 'lucide-react'
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ProfileCard } from "@/components/profile/ProfileCard";
+import { ComunidadFilters } from "@/components/dashboard/ComunidadFilters";
+import { Users } from "lucide-react";
 
 // Recibimos searchParams como prop (Next.js 15+)
 export default async function ComunidadPage(props: {
-  searchParams: Promise<{ casa?: string }>
+  searchParams: Promise<{ casa?: string }>;
 }) {
-  const searchParams = await props.searchParams
-  const filtroCasa = searchParams.casa
+  const searchParams = await props.searchParams;
+  const filtroCasa = searchParams.casa;
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   // 1. Obtener MI perfil para saber cuál es "Mi Casa"
   const { data: miPerfil } = await supabase
-    .from('perfiles')
-    .select('casa_id')
-    .eq('id', user.id)
-    .single()
+    .from("perfiles")
+    .select("casa_id")
+    .eq("id", user.id)
+    .single();
 
- // 2. Obtener lista de casas para el filtro (AGREGAMOS 'genero')
+  // 2. Obtener lista de casas para el filtro (AGREGAMOS 'genero')
   const { data: listaCasas } = await supabase
-    .from('casas')
-    .select('id, nombre, genero') // <--- ¡Importante!
-    .order('nombre')
+    .from("casas")
+    .select("id, nombre, genero") // <--- ¡Importante!
+    .order("nombre");
 
   // 3. CONSTRUIR LA CONSULTA DE RESIDENTES
   let query = supabase
-    .from('perfiles')
-    .select('*, casas(nombre)')
-    .order('apodo', { ascending: true })
+    .from("perfiles")
+    .select("*, casas(nombre)")
+    .order("apodo", { ascending: true });
 
   // --- LÓGICA DE FILTRADO ---
-  if (filtroCasa === 'all') {
+  if (filtroCasa === "all") {
     // No aplicamos filtro, traemos a todos
   } else if (filtroCasa) {
     // Filtramos por la casa específica que pidieron
-    query = query.eq('casa_id', filtroCasa)
+    query = query.eq("casa_id", filtroCasa);
   } else {
     // POR DEFECTO: Solo mostramos los de MI casa
     if (miPerfil?.casa_id) {
-      query = query.eq('casa_id', miPerfil.casa_id)
+      query = query.eq("casa_id", miPerfil.casa_id);
     }
   }
 
-  const { data: residentes } = await query
+  const { data: residentes } = await query;
 
   return (
     <div className="space-y-8">
-      
       {/* Encabezado + Filtros */}
       <div className="flex flex-col gap-6 border-b border-gray-100 pb-6">
         <div>
@@ -63,11 +65,11 @@ export default async function ComunidadPage(props: {
             Directorio de residentes activos.
           </p>
         </div>
-        
+
         {/* COMPONENTE DE FILTROS */}
-        <ComunidadFilters 
-            casas={listaCasas || []} 
-            miCasaId={miPerfil?.casa_id} 
+        <ComunidadFilters
+          casas={listaCasas || []}
+          miCasaId={miPerfil?.casa_id}
         />
       </div>
 
@@ -75,9 +77,13 @@ export default async function ComunidadPage(props: {
       {residentes && residentes.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {residentes.map((residente) => (
-            <ProfileCard 
-                key={residente.id}
-                variant="compact" // <--- LA MAGIA DEL REDISEÑO
+            <Link
+              key={residente.id}
+              href={`/comunidad/${residente.id}`}
+              className="block transition-transform duration-200 hover:-translate-y-1.5 focus:outline-none"
+            >
+              <ProfileCard
+                variant="compact"
                 fotoUrl={residente.avatar_url}
                 apodo={residente.apodo}
                 nombreCompleto={residente.nombre_completo}
@@ -88,14 +94,17 @@ export default async function ComunidadPage(props: {
                 semestre={residente.semestre_actual}
                 fechaNacimiento={residente.fecha_nacimiento}
                 hobbies={residente.hobbies || []}
-            />
+              />
+            </Link>
           ))}
         </div>
       ) : (
         <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
-            <p className="text-gray-400">No se encontraron residentes en esta casa.</p>
+          <p className="text-gray-400">
+            No se encontraron residentes en esta casa.
+          </p>
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -76,10 +76,18 @@ export default async function FinanzasPage() {
   // 5. LINKS
   const generarLinkPago = (concepto: string, valor: number) => {
     if (!adminCasa?.telefono || valor <= 0) return null;
-    const mensaje = `Hola, soy ${miPerfil.apodo}. Envío comprobante por: ${concepto} - Valor: $${valor.toLocaleString()}.`;
-    return `https://wa.me/${adminCasa.telefono}?text=${encodeURIComponent(mensaje)}`;
-  };
 
+    // 1. Dejar solo dígitos (elimina espacios, guiones o el símbolo '+')
+    let telefonoLimpio = adminCasa.telefono.replace(/\D/g, "");
+
+    // 2. Si tiene 10 dígitos (celular colombiano sin indicativo), anteponer '57'
+    if (telefonoLimpio.length === 10) {
+      telefonoLimpio = `57${telefonoLimpio}`;
+    }
+
+    const mensaje = `Hola, soy ${miPerfil.apodo}. Envío comprobante por: ${concepto} - Valor: $${valor.toLocaleString()}.`;
+    return `https://wa.me/${telefonoLimpio}?text=${encodeURIComponent(mensaje)}`;
+  };
   const linkPagarTodo = generarLinkPago("PAGO TOTAL DEUDA", totalDeuda);
   const linkMensualidades = generarLinkPago(
     "Pago Mensualidad",

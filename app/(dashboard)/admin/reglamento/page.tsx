@@ -1,37 +1,15 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import {
-  Scale,
-  Plus,
-  Trash2,
-  ArrowLeft,
-  Building2,
-  UserCog,
-} from "lucide-react";
+import { Scale, Plus, ArrowLeft, Building2, UserCog } from "lucide-react";
 import Link from "next/link";
-import { crearArticulo, eliminarArticulo } from "./actions";
-import { BotonAgregarSancion } from "./BotonAgregarSancion";
-
-type Sancion = {
-  valor_base: number;
-  codigo_referencia: string;
-};
+import { crearArticulo } from "./actions";
+import { ArticuloCard, type ArticuloReglamento } from "./ArticuloCard";
+import { SubmitButton } from "@/components/dashboard/ui/SubmitButton";
 
 type Casa = {
   id: string;
   nombre: string;
   genero?: string;
-};
-
-type ArticuloReglamento = {
-  id: string;
-  casa_id: string;
-  numero_articulo: string;
-  capitulo: string;
-  titulo: string;
-  descripcion_texto: string;
-  casas: Casa | Casa[] | null;
-  sanciones: Sancion[];
 };
 
 export default async function EditorLegislativoPage() {
@@ -69,26 +47,23 @@ export default async function EditorLegislativoPage() {
   let casasDisponibles: Casa[] = [];
 
   if (esAdmin) {
-    // ADMIN: Trae TODO
-    const { data: allReglamento } = await supabase
-      .from("reglamento")
-      .select(
-        `
+    // ADMIN: Trae TODO en paralelo
+    const [{ data: allReglamento }, { data: allCasas }] = await Promise.all([
+      supabase
+        .from("reglamento")
+        .select(
+          `
             *,
             casas (id, nombre),
-            sanciones (valor_base, codigo_referencia)
-        `,
-      )
-      .order("casa_id")
-      .order("numero_articulo", { ascending: true });
+            sanciones (id, valor_base, codigo_referencia)
+          `,
+        )
+        .order("casa_id")
+        .order("numero_articulo", { ascending: true }),
+      supabase.from("casas").select("id, nombre, genero").order("nombre"),
+    ]);
 
     articulos = (allReglamento as unknown as ArticuloReglamento[]) || [];
-
-    const { data: allCasas } = await supabase
-      .from("casas")
-      .select("id, nombre, genero")
-      .order("nombre");
-
     casasDisponibles = allCasas || [];
   } else {
     // REPRESENTANTE: Trae Globales + Su casa
@@ -96,12 +71,12 @@ export default async function EditorLegislativoPage() {
       .from("reglamento")
       .select(
         `
-        *,
-        casas (id, nombre),
-        sanciones (valor_base, codigo_referencia)
-    `,
+          *,
+          casas (id, nombre),
+          sanciones (id, valor_base, codigo_referencia)
+        `,
       )
-      .or(`casa_id.eq.${perfil.casa_id},casa_id.is.null`) // Filtro de herencia
+      .or(`casa_id.eq.${perfil.casa_id},casa_id.is.null`)
       .order("numero_articulo", { ascending: true });
 
     articulos = (myReglamento as unknown as ArticuloReglamento[]) || [];
@@ -275,12 +250,13 @@ export default async function EditorLegislativoPage() {
                 </div>
               </div>
 
-              <button
+              <SubmitButton
                 type="submit"
+                loadingText="Guardando..."
                 className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-black transition-transform active:scale-95 shadow-md"
               >
                 {esAdmin ? "Promulgar Ley (Sede)" : "Agregar Norma Local"}
-              </button>
+              </SubmitButton>
             </form>
           </div>
         </div>
@@ -293,76 +269,15 @@ export default async function EditorLegislativoPage() {
             </div>
           )}
 
-          {articulos.map((art) => {
-            const casaNombre =
-              art.casa_id === null
-                ? "🌍 GLOBAL"
-                : Array.isArray(art.casas)
-                  ? art.casas[0]?.nombre
-                  : (art.casas as any)?.nombre || "Sin Sede";
-            return (
-              <div
-                key={art.id}
-                className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 group hover:border-indigo-200 transition-colors relative"
-              >
-                {/* Badge de Sede (Solo Admin) */}
-                {esAdmin && (
-                  <div className="absolute top-0 right-0 bg-gray-100 text-gray-500 text-[9px] font-bold px-2 py-1 rounded-bl-lg border-l border-b border-gray-200">
-                    {casaNombre}
-                  </div>
-                )}
-
-                <div className="flex-1 pt-2">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
-                      {art.capitulo}
-                    </span>
-                    <span className="text-indigo-600 font-black text-sm">
-                      Art. {art.numero_articulo}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-gray-800 text-lg mb-2">
-                    {art.titulo}
-                  </h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">
-                    {art.descripcion_texto}
-                  </p>
-
-                  {/* LISTA DE SANCIONES (Mapeo completo) */}
-                  {art.sanciones && art.sanciones.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {art.sanciones.map((s, idx) => (
-                        <div
-                          key={idx}
-                          className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded-lg flex items-center gap-1 border border-red-100"
-                        >
-                          <Scale size={10} />
-                          <span>
-                            {s.codigo_referencia}: $
-                            {s.valor_base.toLocaleString()}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* 👇 BOTÓN INTERACTIVO PARA AGREGAR MÁS SANCIONES */}
-                  <BotonAgregarSancion reglamentoId={art.id} />
-                </div>
-
-                <div className="flex items-start justify-end mt-2 md:mt-0">
-                  <form action={eliminarArticulo.bind(null, art.id)}>
-                    <button
-                      className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                      title="Derogar Ley"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </form>
-                </div>
-              </div>
-            );
-          })}
+          {articulos.map((art) => (
+            <ArticuloCard
+              key={art.id}
+              art={art}
+              esAdmin={esAdmin}
+              miCasaId={perfil.casa_id}
+              casasDisponibles={casasDisponibles}
+            />
+          ))}
         </div>
       </div>
     </div>

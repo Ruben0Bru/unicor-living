@@ -2,15 +2,16 @@
 
 import { useState, useMemo } from "react";
 import { crearMulta } from "../actions";
+import { SubmitButton } from "@/components/dashboard/ui/SubmitButton";
 import {
   User,
   DollarSign,
   AlertOctagon,
   Building2,
-  Ticket,
-  Gavel,
   Users,
   FileText,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 type Vecino = {
@@ -40,9 +41,8 @@ export function FormularioMulta({
   const [sancionId, setSancionId] = useState("");
   const [casaSeleccionada, setCasaSeleccionada] = useState("");
 
-  // Nuevos estados para los testigos
-  const [testigo1Id, setTestigo1Id] = useState("");
-  const [testigo2Id, setTestigo2Id] = useState("");
+  // Lista dinámica de testigos (arranca con 1 campo obligatorio)
+  const [testigos, setTestigos] = useState<string[]>([""]);
 
   // Filtrado de residentes
   const listaResidentesVisibles = useMemo(() => {
@@ -71,16 +71,36 @@ export function FormularioMulta({
     return suffix ? `${nombre} (${suffix})` : nombre;
   };
 
-  // Validación de seguridad para habilitar el botón
+  // Manejadores de testigos dinámicos
+  const handleTestigoChange = (index: number, value: string) => {
+    setTestigos((prev) => {
+      const updated = [...prev];
+      updated[index] = value;
+      return updated;
+    });
+  };
+
+  const agregarTestigo = () => {
+    setTestigos((prev) => [...prev, ""]);
+  };
+
+  const eliminarTestigo = (index: number) => {
+    setTestigos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Al menos 1 testigo válido seleccionado (distinto al acusado)
+  const testigosValidos = testigos.filter(
+    (id) => id !== "" && id !== acusadoId,
+  );
+  const maxTestigosPosibles = Math.max(
+    0,
+    listaResidentesVisibles.length - (acusadoId ? 1 : 0),
+  );
+
   const isBotonDeshabilitado =
     !acusadoId ||
     !sancionId ||
-    (!esBienestarMode &&
-      (!testigo1Id ||
-        !testigo2Id ||
-        testigo1Id === testigo2Id ||
-        testigo1Id === acusadoId ||
-        testigo2Id === acusadoId));
+    (!esBienestarMode && testigosValidos.length === 0);
 
   return (
     <form
@@ -133,9 +153,12 @@ export function FormularioMulta({
               required
               className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl appearance-none font-bold text-gray-700 focus:ring-2 focus:ring-unicor-primary outline-none transition-all cursor-pointer disabled:opacity-50"
               onChange={(e) => {
-                setAcusadoId(e.target.value);
-                if (testigo1Id === e.target.value) setTestigo1Id("");
-                if (testigo2Id === e.target.value) setTestigo2Id("");
+                const nuevoAcusado = e.target.value;
+                setAcusadoId(nuevoAcusado);
+                // Limpiar si el nuevo acusado estaba elegido como testigo
+                setTestigos((prev) =>
+                  prev.map((t) => (t === nuevoAcusado ? "" : t)),
+                );
               }}
               value={acusadoId}
               disabled={esBienestarMode && !casaSeleccionada}
@@ -208,7 +231,7 @@ export function FormularioMulta({
           )}
         </div>
 
-        {/* 4. RELATO DE LOS HECHOS (Reemplaza a la foto) */}
+        {/* 4. RELATO DE LOS HECHOS */}
         <div className="space-y-2">
           <label className="text-sm font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
             <FileText size={18} /> Relato de los Hechos
@@ -221,87 +244,92 @@ export function FormularioMulta({
           ></textarea>
         </div>
 
-        {/* 5. TESTIGOS (Solo para residentes) */}
+        {/* 5. TESTIGOS DINÁMICOS (Mínimo 1, solo para residentes) */}
         {!esBienestarMode && (
           <div className="space-y-4 bg-gray-50 p-6 rounded-2xl border border-gray-200">
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="text-unicor-primary" size={24} />
-              <h3 className="font-bold text-gray-800 text-lg">
-                Testigos Requeridos
-              </h3>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Users className="text-unicor-primary" size={24} />
+                <h3 className="font-bold text-gray-800 text-lg">
+                  Testigos ({testigosValidos.length})
+                </h3>
+              </div>
+              {testigos.length < maxTestigosPosibles && (
+                <button
+                  type="button"
+                  onClick={agregarTestigo}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-unicor-primary bg-white px-3 py-2 rounded-xl border border-gray-200 hover:bg-unicor-primary hover:text-white transition-colors shadow-sm"
+                >
+                  <Plus size={14} /> Añadir testigo
+                </button>
+              )}
             </div>
-            <p className="text-sm text-gray-500 mb-4">
-              Selecciona dos residentes que presenciaron los hechos para validar
-              tu versión.
+            <p className="text-sm text-gray-500">
+              Selecciona al menos un residente que presenció los hechos. Puedes
+              añadir más si hubo otros testigos.
             </p>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Testigo 1
-                </label>
-                <select
-                  name="testigo1_id"
-                  required
-                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none"
-                  onChange={(e) => setTestigo1Id(e.target.value)}
-                  value={testigo1Id}
-                >
-                  <option value="" disabled>
-                    -- Seleccionar --
-                  </option>
-                  {listaResidentesVisibles.map((v) => (
-                    <option
-                      key={v.id}
-                      value={v.id}
-                      disabled={v.id === acusadoId || v.id === testigo2Id}
+            <div className="space-y-3">
+              {testigos.map((testigoId, index) => (
+                <div key={index} className="flex items-end gap-2">
+                  <div className="flex-1 space-y-1">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                      Testigo {index + 1} {index === 0 && "(Obligatorio)"}
+                    </label>
+                    <select
+                      name="testigos"
+                      required={index === 0}
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-unicor-primary"
+                      onChange={(e) =>
+                        handleTestigoChange(index, e.target.value)
+                      }
+                      value={testigoId}
                     >
-                      {v.apodo}{" "}
-                      {v.nombre_completo ? `(${v.nombre_completo})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                      <option value="">-- Seleccionar --</option>
+                      {listaResidentesVisibles.map((v) => {
+                        const yaSeleccionado = testigos.some(
+                          (t, i) => t === v.id && i !== index,
+                        );
+                        return (
+                          <option
+                            key={v.id}
+                            value={v.id}
+                            disabled={v.id === acusadoId || yaSeleccionado}
+                          >
+                            {v.apodo}{" "}
+                            {v.nombre_completo ? `(${v.nombre_completo})` : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Testigo 2
-                </label>
-                <select
-                  name="testigo2_id"
-                  required
-                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 outline-none"
-                  onChange={(e) => setTestigo2Id(e.target.value)}
-                  value={testigo2Id}
-                >
-                  <option value="" disabled>
-                    -- Seleccionar --
-                  </option>
-                  {listaResidentesVisibles.map((v) => (
-                    <option
-                      key={v.id}
-                      value={v.id}
-                      disabled={v.id === acusadoId || v.id === testigo1Id}
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => eliminarTestigo(index)}
+                      title="Quitar testigo"
+                      className="p-3 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl border border-gray-200 bg-white transition-colors"
                     >
-                      {v.apodo}{" "}
-                      {v.nombre_completo ? `(${v.nombre_completo})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        <button
+        <SubmitButton
           type="submit"
           disabled={isBotonDeshabilitado}
-          className={`w-full text-white font-bold py-4 rounded-xl shadow-lg transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 text-lg disabled:bg-gray-300 disabled:cursor-not-allowed
+          loadingText="Generando multa..."
+          className={`w-full text-white font-bold py-4 rounded-xl shadow-lg transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 text-lg disabled:bg-gray-300 disabled:cursor-not-allowed disabled:transform-none
                 ${esBienestarMode ? "bg-indigo-600 hover:bg-indigo-700" : "bg-unicor-primary hover:bg-unicor-secondary"}
             `}
         >
           <DollarSign size={24} /> Generar Multa
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );

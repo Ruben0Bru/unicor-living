@@ -28,9 +28,23 @@ export async function crearMulta(formData: FormData) {
   ) as string;
   const fechaInput = formData.get("fecha_incidente") as string;
 
-  // Testigos (Vienen vacíos si el que multa es Bienestar)
-  const testigo1_id = formData.get("testigo1_id") as string;
-  const testigo2_id = formData.get("testigo2_id") as string;
+  // Testigos dinámicos (1 o más)
+  const testigosRaw = formData.getAll("testigos") as string[];
+  const testigosUnicos = Array.from(
+    new Set(
+      testigosRaw.filter(
+        (id) => id && id.trim() !== "" && id !== residente_id && id !== user.id,
+      ),
+    ),
+  );
+
+  // Identificar si es Bienestar (Rol ID 6 en tu base de datos)
+  const esBienestar = perfilAcusador.rol_id === 6;
+
+  // Validar mínimo 1 testigo si no es Bienestar
+  if (!esBienestar && testigosUnicos.length === 0) {
+    return redirect("/multas/nueva?error=sin_testigos");
+  }
 
   // --- 👮 REGLA DE LAS 24 HORAS ---
   const fechaIncidente = fechaInput ? new Date(fechaInput) : new Date();
@@ -42,7 +56,22 @@ export async function crearMulta(formData: FormData) {
     console.error("Intento de multa prescrita");
     return redirect("/multas/nueva?error=prescrita");
   }
-  // --------------------------------
+
+  // --- 🛡️ ESCUDO ANTI-DUPLICADOS (15 segundos) ---
+  const hace15Segundos = new Date(Date.now() - 15 * 1000).toISOString();
+  const { data: multaReciente } = await supabase
+    .from("multas")
+    .select("id")
+    .eq("acusador_id", user.id)
+    .eq("residente_id", residente_id)
+    .eq("sancion_id", sancion_id)
+    .gte("created_at", hace15Segundos)
+    .limit(1);
+
+  if (multaReciente && multaReciente.length > 0) {
+    // Ya se registró hace unos segundos, redirigimos sin duplicar
+    return redirect("/multas");
+  }
 
   // 2. CALCULAR VALOR (LÓGICA BIENESTAR x2) ⚖️
   const { data: sancion } = await supabase
@@ -53,14 +82,10 @@ export async function crearMulta(formData: FormData) {
 
   let valorFinal = sancion?.valor_base || 0;
 
-  // Identificar si es Bienestar (Rol ID 6 en tu base de datos)
-  const esBienestar = perfilAcusador.rol_id === 6;
-
   if (esBienestar) {
     valorFinal = valorFinal * 2; // 🔥 DOBLE CASTIGO
   }
 
-  // Lógica de Poder Supremo
   const estadoInicial = esBienestar ? "aprobada" : "pendiente";
 
   // 3. INSERTAR LA MULTA PRINCIPAL
@@ -77,7 +102,7 @@ export async function crearMulta(formData: FormData) {
       es_bienestar: esBienestar,
       fecha_incidente: fechaIncidente.toISOString(),
     })
-    .select("id") // Pedimos que nos devuelva el ID recién creado
+    .select("id")
     .single();
 
   if (errorMulta || !nuevaMulta) {
@@ -86,11 +111,12 @@ export async function crearMulta(formData: FormData) {
   }
 
   // 4. ASIGNAR TESTIGOS (Solo si no es Bienestar)
-  if (!esBienestar && testigo1_id && testigo2_id) {
-    const testimonios = [
-      { multa_id: nuevaMulta.id, testigo_id: testigo1_id, estado: "pendiente" },
-      { multa_id: nuevaMulta.id, testigo_id: testigo2_id, estado: "pendiente" },
-    ];
+  if (!esBienestar && testigosUnicos.length > 0) {
+    const testimonios = testigosUnicos.map((testigoId) => ({
+      multa_id: nuevaMulta.id,
+      testigo_id: testigoId,
+      estado: "pendiente",
+    }));
 
     const { error: errorTestigos } = await supabase
       .from("testimonios_multas")

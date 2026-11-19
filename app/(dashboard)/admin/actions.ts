@@ -1,96 +1,279 @@
-'use server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { createClient } from '@/utils/supabase/server'
-import { revalidatePath } from 'next/cache'
+"use server";
 
-async function verificarAdmin() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("No autenticado")
+import { createClient } from "@/utils/supabase/server";
+import { revalidatePath } from "next/cache";
+
+// Verificar Permisos (Admin O Representante)
+async function checkPermissions() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autenticado");
 
   const { data: perfil } = await supabase
-    .from('perfiles')
-    .select('roles(nombre)')
-    .eq('id', user.id)
-    .single()
+    .from("perfiles")
+    .select("casa_id, roles(nombre)")
+    .eq("id", user.id)
+    .single();
 
-  const nombreRol = (perfil?.roles as any)?.nombre || ''
-  if (!nombreRol.toLowerCase().includes('admin')) {
-      throw new Error("Acceso Denegado.")
+  if (!perfil) throw new Error("Perfil no encontrado");
+
+  const rolesData = perfil.roles as any;
+  const nombreRol = (
+    Array.isArray(rolesData) ? rolesData[0]?.nombre : rolesData?.nombre || ""
+  ).toLowerCase();
+
+  const esAdmin = nombreRol.includes("admin");
+  const esRepresentante = nombreRol.includes("representante");
+
+  if (!esAdmin && !esRepresentante) {
+    throw new Error("Acceso denegado: Se requiere ser Admin o Representante.");
   }
-  return supabase
+
+  return { supabase, perfil, esAdmin };
 }
 
-// ✅ APROBAR INGRESO
-export async function aprobarSolicitud(usuarioId: string, casaId: string, rolId: number) {
-    const supabase = await verificarAdmin()
-    
-    const { error } = await supabase
-        .from('perfiles')
-        .update({ 
-            autorizado: true,
-            casa_id: casaId,
-            rol_id: rolId
-        })
-        .eq('id', usuarioId)
+// 1. CREAR ARTÍCULO
+export async function crearArticulo(formData: FormData) {
+  const { supabase, perfil, esAdmin } = await checkPermissions();
 
-    if (error) throw new Error("Error al aprobar usuario")
-    revalidatePath('/admin')
-}
+  const capitulo = formData.get("capitulo") as string;
+  const numero = formData.get("numero") as string;
+  const titulo = formData.get("titulo") as string;
+  const descripcion = formData.get("descripcion") as string;
 
-// ❌ RECHAZAR O EXPULSAR (ELIMINAR)
-export async function eliminarUsuario(usuarioId: string) {
-    await verificarAdmin()
-    
-    const supabaseAdmin = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(usuarioId)
+  let casaDestinoId: string | null = perfil.casa_id;
 
-    if (authError) {
-        await supabaseAdmin.from('perfiles').delete().eq('id', usuarioId)
+  if (esAdmin) {
+    const selectedCasa = formData.get("casa_id") as string;
+    if (selectedCasa === "GLOBAL") {
+      casaDestinoId = null;
+    } else if (selectedCasa) {
+      casaDestinoId = selectedCasa;
     }
+  }
 
-    revalidatePath('/admin')
+  const crearSancion = formData.get("crear_sancion") === "on";
+  const precioMulta = formData.get("precio_multa");
+  const codigoSancion = formData.get("codigo_sancion") as string;
+
+  if (!numero || !titulo || !descripcion)
+    throw new Error("Faltan datos obligatorios");
+
+  const { data: articulo, error: errorArt } = await supabase
+    .from("reglamento")
+    .insert({
+      casa_id: casaDestinoId,
+      capitulo,
+      numero_articulo: numero,
+      titulo,
+      descripcion_texto: descripcion,
+    })
+    .select()
+    .single();
+
+  if (errorArt) throw new Error("Error creando artículo: " + errorArt.message);
+
+  if (crearSancion && articulo) {
+    await supabase.from("sanciones").insert({
+      casa_id: casaDestinoId,
+      reglamento_id: articulo.id,
+      codigo_referencia: codigoSancion || `ART-${numero}`,
+      descripcion: `Violación al Art. ${numero}: ${titulo}`,
+      valor_base: Number(precioMulta),
+      categoria: "disciplinaria",
+    });
+  }
+
+  revalidatePath("/admin/reglamento");
+  revalidatePath("/reglamento");
 }
-// 🎖️ ADJUDICAR (SOLO IDA -> NO SE PUEDE REVOCAR)
-export async function adjudicarUsuario(usuarioId: string) {
-    const supabase = await verificarAdmin()
-    
-    const { error } = await supabase
-        .from('perfiles')
-        .update({ es_adjudicado: true })
-        .eq('id', usuarioId)
 
-    if (error) throw new Error("Error al adjudicar")
-    revalidatePath('/admin')
+// 2. EDITAR ARTÍCULO (NUEVA)
+export async function editarArticulo(formData: FormData) {
+  const { supabase, perfil, esAdmin } = await checkPermissions();
+
+  const id = formData.get("id") as string;
+  const capitulo = formData.get("capitulo") as string;
+  const numero = formData.get("numero") as string;
+  const titulo = formData.get("titulo") as string;
+  const descripcion = formData.get("descripcion") as string;
+
+  if (!id || !numero || !titulo || !descripcion) {
+    throw new Error("Faltan datos obligatorios");
+  }
+
+  // Verificar artículo actual y permisos
+  const { data: articuloActual, error: fetchError } = await supabase
+    .from("reglamento")
+    .select("casa_id")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !articuloActual) throw new Error("Artículo no encontrado");
+
+  // Representante solo puede editar normas locales de su propia casa
+  if (!esAdmin && articuloActual.casa_id !== perfil.casa_id) {
+    throw new Error(
+      "No tienes permiso para editar normas globales o de otra casa.",
+    );
+  }
+
+  // Definir casa destino
+  let casaDestinoId: string | null = articuloActual.casa_id;
+  if (esAdmin) {
+    const selectedCasa = formData.get("casa_id") as string;
+    casaDestinoId = selectedCasa === "GLOBAL" ? null : selectedCasa;
+  }
+
+  // Actualizar artículo
+  const { error: updateError } = await supabase
+    .from("reglamento")
+    .update({
+      casa_id: casaDestinoId,
+      capitulo,
+      numero_articulo: numero,
+      titulo,
+      descripcion_texto: descripcion,
+    })
+    .eq("id", id);
+
+  if (updateError)
+    throw new Error("Error actualizando artículo: " + updateError.message);
+
+  // Si el Admin cambió de casa/global, sincronizar sus sanciones asociadas
+  if (esAdmin && casaDestinoId !== articuloActual.casa_id) {
+    await supabase
+      .from("sanciones")
+      .update({ casa_id: casaDestinoId })
+      .eq("reglamento_id", id);
+  }
+
+  revalidatePath("/admin/reglamento");
+  revalidatePath("/reglamento");
 }
 
-// 👇👇👇 AQUÍ ESTÁN LAS FUNCIONES QUE FALTABAN 👇👇👇
+// 3. ELIMINAR ARTÍCULO (BLINDADA)
+export async function eliminarArticulo(id: string) {
+  const { supabase, perfil, esAdmin } = await checkPermissions();
 
-// 🔄 ACTUALIZAR ROL (Para usuarios ya activos)
-export async function actualizarRol(usuarioId: string, nuevoRolId: number) {
-    const supabase = await verificarAdmin()
-    
-    const { error } = await supabase
-        .from('perfiles')
-        .update({ rol_id: nuevoRolId })
-        .eq('id', usuarioId)
+  if (!esAdmin) {
+    const { data: articulo } = await supabase
+      .from("reglamento")
+      .select("casa_id")
+      .eq("id", id)
+      .single();
 
-    if (error) throw new Error("Error al actualizar el rol")
-    revalidatePath('/admin')
+    if (!articulo || articulo.casa_id !== perfil.casa_id) {
+      throw new Error("No puedes eliminar normas globales o de otra casa.");
+    }
+  }
+
+  await supabase.from("reglamento").delete().eq("id", id);
+  revalidatePath("/admin/reglamento");
+  revalidatePath("/reglamento");
 }
 
-// 🏠 ACTUALIZAR CASA (Mudanzas)
-export async function actualizarCasa(usuarioId: string, nuevaCasaId: string) {
-    const supabase = await verificarAdmin()
-    
-    const { error } = await supabase
-        .from('perfiles')
-        .update({ casa_id: nuevaCasaId })
-        .eq('id', usuarioId)
+// 4. AGREGAR SANCIÓN A ARTÍCULO EXISTENTE
+export async function agregarSancionExtra(formData: FormData) {
+  const { supabase, perfil, esAdmin } = await checkPermissions();
 
-    if (error) throw new Error("Error al cambiar de casa")
-    revalidatePath('/admin')
+  const reglamentoId = formData.get("reglamento_id") as string;
+  const codigo = formData.get("codigo") as string;
+  const valor = formData.get("valor") as string;
+
+  if (!reglamentoId || !codigo || !valor) throw new Error("Datos incompletos");
+
+  const { data: articulo } = await supabase
+    .from("reglamento")
+    .select("casa_id, numero_articulo, titulo")
+    .eq("id", reglamentoId)
+    .single();
+
+  if (!articulo) throw new Error("Artículo no encontrado");
+
+  if (!esAdmin && articulo.casa_id !== perfil.casa_id) {
+    throw new Error("No puedes editar normas globales o de otra casa.");
+  }
+
+  const { error } = await supabase.from("sanciones").insert({
+    casa_id: articulo.casa_id,
+    reglamento_id: reglamentoId,
+    codigo_referencia: codigo,
+    descripcion: `Violación al Art. ${articulo.numero_articulo}: ${articulo.titulo}`,
+    valor_base: Number(valor),
+    categoria: "disciplinaria",
+  });
+
+  if (error) {
+    console.error("Error al insertar sanción:", error);
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin/reglamento");
+  revalidatePath("/reglamento");
+}
+
+// 5. EDITAR SANCIÓN INDIVIDUAL
+export async function editarSancion(formData: FormData) {
+  const { supabase, perfil, esAdmin } = await checkPermissions();
+
+  const sancionId = formData.get("sancion_id") as string;
+  const codigo = formData.get("codigo") as string;
+  const valor = formData.get("valor") as string;
+
+  if (!sancionId || !codigo || !valor) throw new Error("Datos incompletos");
+
+  const { data: sancion } = await supabase
+    .from("sanciones")
+    .select("casa_id")
+    .eq("id", sancionId)
+    .single();
+
+  if (!sancion) throw new Error("Sanción no encontrada");
+
+  if (!esAdmin && sancion.casa_id !== perfil.casa_id) {
+    throw new Error("No puedes editar sanciones globales o de otra casa.");
+  }
+
+  const { error } = await supabase
+    .from("sanciones")
+    .update({
+      codigo_referencia: codigo,
+      valor_base: Number(valor),
+    })
+    .eq("id", sancionId);
+
+  if (error) throw new Error("Error actualizando sanción: " + error.message);
+
+  revalidatePath("/admin/reglamento");
+  revalidatePath("/reglamento");
+}
+
+// 6. ELIMINAR SANCIÓN INDIVIDUAL
+export async function eliminarSancion(sancionId: string) {
+  const { supabase, perfil, esAdmin } = await checkPermissions();
+
+  if (!esAdmin) {
+    const { data: sancion } = await supabase
+      .from("sanciones")
+      .select("casa_id")
+      .eq("id", sancionId)
+      .single();
+
+    if (!sancion || sancion.casa_id !== perfil.casa_id) {
+      throw new Error("No puedes eliminar sanciones globales o de otra casa.");
+    }
+  }
+
+  const { error } = await supabase
+    .from("sanciones")
+    .delete()
+    .eq("id", sancionId);
+
+  if (error) throw new Error("Error eliminando sanción: " + error.message);
+
+  revalidatePath("/admin/reglamento");
+  revalidatePath("/reglamento");
 }
